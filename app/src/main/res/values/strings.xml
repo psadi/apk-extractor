@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">APK Extractor</string>
+    <string name="search_hint">Search apps or packages…</string>
+    <string name="tab_user_apps">User Installed</string>
+    <string name="tab_system_apps">System Apps</string>
+    <string name="extract_apk">Extract APK</string>
+    <string name="direct_share">Share APK</string>
+    <string name="app_info">App Info</string>
+    <string name="extracted_success">Extracted %1$s</string>
+    <string name="extracted_to">to %1$s</string>
+    <string name="action_share">Share</string>
+    <string name="action_open_folder">Open Folder</string>
+    <string name="action_settings">Settings</string>
+    <string name="choose_output_directory">Select Output Folder</string>
+    <string name="default_output_location">Downloads/APK_Extractor</string>
+    <string name="custom_location">Custom Folder</string>
+    <string name="no_apps_found">No applications found</string>
+    <string name="extracting">Extracting %1$s…</string>
+    <string name="extraction_failed">Failed to extract %1$s: %2$s</string>
+</resources>
