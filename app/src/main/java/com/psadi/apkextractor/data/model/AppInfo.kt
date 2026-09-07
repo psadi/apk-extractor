@@ -16,8 +16,12 @@ data class AppInfo(
     val apkSize: Long,
     val isSystemApp: Boolean,
     val firstInstallTime: Long,
-    val lastUpdateTime: Long
+    val lastUpdateTime: Long,
+    val splitApkPaths: List<String> = emptyList()
 ) {
+    val isSplitApk: Boolean get() = splitApkPaths.isNotEmpty()
+    val totalSplitCount: Int get() = if (isSplitApk) splitApkPaths.size + 1 else 1
+
     val formattedSize: String
         get() {
             if (apkSize <= 0) return "0 B"
@@ -38,5 +42,12 @@ data class AppInfo(
             val cleanName = appName.replace(Regex("[\\\\/:*?\"<>|\\s]+"), "_")
             val cleanVersion = versionName.replace(Regex("[\\\\/:*?\"<>|\\s]+"), "_")
             return "${cleanName}_v${cleanVersion}.apk"
+        }
+
+    val sanitizedBundleFileName: String
+        get() {
+            val cleanName = appName.replace(Regex("[\\\\/:*?\"<>|\\s]+"), "_")
+            val cleanVersion = versionName.replace(Regex("[\\\\/:*?\"<>|\\s]+"), "_")
+            return if (isSplitApk) "${cleanName}_v${cleanVersion}.apks" else "${cleanName}_v${cleanVersion}.apk"
         }
 }

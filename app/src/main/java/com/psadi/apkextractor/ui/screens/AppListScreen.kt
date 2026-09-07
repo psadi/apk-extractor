@@ -25,13 +25,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -272,6 +275,25 @@ fun AppListScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // Action: Install APK
+                                Button(
+                                    onClick = {
+                                        IntentUtil.installApk(context, success.shareableUri, success.appName)
+                                    },
+                                    modifier = Modifier.weight(1.1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.InstallMobile,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Install")
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
                                 // Action: Share
                                 FilledTonalButton(
                                     onClick = {
@@ -285,18 +307,18 @@ fun AppListScreen(
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text("Share")
                                 }
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
 
                                 // Action: Open Folder
-                                FilledTonalButton(
+                                OutlinedButton(
                                     onClick = {
                                         IntentUtil.openFolder(context, success.destinationFolderUri)
                                     },
-                                    modifier = Modifier.weight(1.2f),
+                                    modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
                                     Icon(
@@ -304,10 +326,19 @@ fun AppListScreen(
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Open Folder")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Folder")
                                 }
                             }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "💡 Tip: If this app is already installed, Android will update it. If install fails due to signature differences, uninstall existing version first.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
                         }
                     }
                 }
@@ -320,7 +351,8 @@ fun AppListScreen(
                     onDismiss = { viewModel.onDismissBottomSheet() },
                     onExtractClick = { viewModel.extractApk(appInfo) },
                     onShareClick = { viewModel.shareApk(appInfo, context) },
-                    onAppInfoClick = { viewModel.openAppInfo(appInfo, context) }
+                    onAppInfoClick = { viewModel.openAppInfo(appInfo, context) },
+                    onInstallClick = { IntentUtil.installAppPackage(context, appInfo) }
                 )
             }
 

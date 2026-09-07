@@ -70,4 +70,122 @@ object IntentUtil {
             }
         }
     }
+
+    fun installApk(context: Context, uri: Uri, appName: String) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    Toast.makeText(
+                        context,
+                        "Please allow APK Extractor to install apps in system settings",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    val settingsIntent = Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}")
+                    ).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(settingsIntent)
+                    return
+                }
+            }
+
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(installIntent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Cannot launch installer: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun installAppPackage(context: Context, appInfo: com.psadi.apkextractor.data.model.AppInfo) {
+        if (appInfo.isSplitApk) {
+            installSplitApks(context, appInfo)
+        } else {
+            val file = java.io.File(appInfo.apkPath)
+            if (!file.exists()) {
+                Toast.makeText(context, "Source APK not found", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            installApk(context, uri, appInfo.appName)
+        }
+    }
+
+    fun installSplitApks(context: Context, appInfo: com.psadi.apkextractor.data.model.AppInfo) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    Toast.makeText(
+                        context,
+                        "Please allow APK Extractor to install apps in system settings",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    val settingsIntent = Intent(
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}")
+                    ).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(settingsIntent)
+                    return
+                }
+            }
+
+            val packageInstaller = context.packageManager.packageInstaller
+            val params = android.content.pm.PackageInstaller.SessionParams(
+                android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                params.setRequireUserAction(android.content.pm.PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
+            }
+
+            val sessionId = packageInstaller.createSession(params)
+            val session = packageInstaller.openSession(sessionId)
+
+            val baseFile = java.io.File(appInfo.apkPath)
+            java.io.FileInputStream(baseFile).use { input ->
+                session.openWrite("base.apk", 0, baseFile.length()).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            appInfo.splitApkPaths.forEachIndexed { index, splitPath ->
+                val splitFile = java.io.File(splitPath)
+                if (splitFile.exists()) {
+                    java.io.FileInputStream(splitFile).use { input ->
+                        session.openWrite("split_$index.apk", 0, splitFile.length()).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+            }
+
+            val intent = Intent(context, InstallReceiver::class.java).apply {
+                action = "com.psadi.apkextractor.INSTALL_COMPLETE"
+                putExtra("appName", appInfo.appName)
+            }
+            val pendingIntent = android.app.PendingIntent.getBroadcast(
+                context,
+                sessionId,
+                intent,
+                android.app.PendingIntent.FLAG_MUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            session.commit(pendingIntent.intentSender)
+            session.close()
+
+            Toast.makeText(context, "Initiating package install for ${appInfo.appName}…", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Install error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+        }
+    }
 }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -43,6 +44,7 @@ fun AppDetailBottomSheet(
     onExtractClick: () -> Unit,
     onShareClick: () -> Unit,
     onAppInfoClick: () -> Unit,
+    onInstallClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -149,6 +151,21 @@ fun AppDetailBottomSheet(
                 onClick = {
                     onDismiss()
                     onShareClick()
+                }
+            )
+
+            // Action: Install / Test App
+            BottomSheetActionRow(
+                icon = Icons.Default.InstallMobile,
+                title = "Install / Test App",
+                subtitle = if (appInfo.isSplitApk) {
+                    "Install complete package (${appInfo.totalSplitCount} splits) via PackageInstaller"
+                } else {
+                    "Launch Android Package Installer for APK"
+                },
+                onClick = {
+                    onDismiss()
+                    onInstallClick()
                 }
             )
 

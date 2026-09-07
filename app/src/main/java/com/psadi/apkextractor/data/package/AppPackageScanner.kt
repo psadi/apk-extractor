@@ -48,6 +48,12 @@ class AppPackageScanner(private val context: Context) {
                 26
             }
 
+            val splitApkPaths = (appInfo.splitPublicSourceDirs ?: appInfo.splitSourceDirs)
+                ?.filter { !it.isNullOrBlank() && File(it).exists() }
+                ?: emptyList()
+
+            val totalSize = apkFile.length() + splitApkPaths.sumOf { File(it).length() }
+
             apps.add(
                 AppInfo(
                     appName = appName,
@@ -57,10 +63,11 @@ class AppPackageScanner(private val context: Context) {
                     minSdkVersion = minSdkVersion,
                     targetSdkVersion = appInfo.targetSdkVersion,
                     apkPath = apkPath,
-                    apkSize = apkFile.length(),
+                    apkSize = totalSize,
                     isSystemApp = isSystemApp,
                     firstInstallTime = pkg.firstInstallTime,
-                    lastUpdateTime = pkg.lastUpdateTime
+                    lastUpdateTime = pkg.lastUpdateTime,
+                    splitApkPaths = splitApkPaths
                 )
             )
         }

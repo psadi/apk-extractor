@@ -7,6 +7,9 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Needed to launch package installer for extracted APKs on Android 8.0+ (API 26+) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name=".ApkExtractorApp"
         android:allowBackup="true"
@@ -39,6 +42,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".util.InstallReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.psadi.apkextractor.INSTALL_COMPLETE" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
