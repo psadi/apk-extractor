@@ -21,6 +21,10 @@ A modern, production-grade native Android application for exploring installed ap
   - Open System App Settings for the target package.
 - **Actionable Completion Feedback:**
   - Slide-in feedback banner offering direct "Share" and "Open Folder" actions.
+- **Settings, Support & About:**
+  - Configurable storage destination (SAF directory picker or MediaStore).
+  - In-app Support / Donate button to fund ongoing development.
+  - Full app version info (v1.0.0 Build 1), open source license, and GitHub repository links.
 
 ---
 
@@ -115,18 +119,28 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 Automated builds and releases are managed via GitHub Actions ([`.github/workflows/build-and-release.yml`](.github/workflows/build-and-release.yml)):
 
 - **Push & Pull Requests to `main`:**
-  - Automatically compiles `assembleDebug` and `assembleRelease`.
-  - Publishes the compiled APKs as downloadable workflow run artifacts (`apk-extractor-builds`).
+  - Automatically compiles `assembleDebug`, `assembleRelease`, and `bundleRelease` (Google Play App Bundle).
+  - Publishes the compiled APKs and AAB as downloadable workflow run artifacts (`apk-extractor-builds`).
 - **Tag Pushes (`v*`):**
   - Triggers automated release publishing to **GitHub Releases**.
-  - Attaches both `APK-Extractor-release.apk` and `APK-Extractor-debug.apk` directly to the release entry.
+  - Attaches `APK-Extractor-release.aab`, `APK-Extractor-release.apk`, and `APK-Extractor-debug.apk` directly to the release.
   - Automatically generates changelog notes from commit history.
 
 To trigger a new release:
 ```bash
-git tag -a v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
+git tag -a v1.0.1 -m "Release v1.0.1"
+git push origin v1.0.1
 ```
+
+---
+
+## 🚀 Google Play Store Publication
+
+Everything required to publish APK Extractor on the Google Play Store is pre-configured and documented:
+
+- **Publication Guide & Store Metadata:** See [`PLAY_STORE_GUIDE.md`](PLAY_STORE_GUIDE.md) for complete copy-paste descriptions, store graphics specifications, upload key generation commands, and console walkthrough.
+- **Privacy Policy:** See [`PRIVACY_POLICY.md`](PRIVACY_POLICY.md) (required by Google Play).
+- **Play Store App Bundle:** Generate locally via `./gradlew bundleRelease` or download `APK-Extractor-release.aab` directly from GitHub Releases / CI artifacts.
 
 ---
 
