@@ -23,7 +23,16 @@ class InstallReceiver : BroadcastReceiver() {
                 }
                 if (confirmIntent != null) {
                     confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(confirmIntent)
+                    val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        android.app.ActivityOptions.makeBasic().apply {
+                            setPendingIntentBackgroundActivityStartMode(
+                                android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                            )
+                        }.toBundle()
+                    } else {
+                        null
+                    }
+                    context.startActivity(confirmIntent, options)
                 }
             }
             PackageInstaller.STATUS_SUCCESS -> {

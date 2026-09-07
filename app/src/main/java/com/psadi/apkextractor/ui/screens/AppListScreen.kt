@@ -278,7 +278,11 @@ fun AppListScreen(
                                 // Action: Install APK
                                 Button(
                                     onClick = {
-                                        IntentUtil.installApk(context, success.shareableUri, success.appName)
+                                        if (success.appInfo != null) {
+                                            IntentUtil.installAppPackage(context, success.appInfo)
+                                        } else {
+                                            IntentUtil.installApk(context, success.shareableUri, success.appName)
+                                        }
                                     },
                                     modifier = Modifier.weight(1.1f),
                                     shape = RoundedCornerShape(10.dp)

@@ -144,7 +144,8 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
                                 fileName = extracted.fileName,
                                 destinationPath = extracted.destinationDisplayName,
                                 shareableUri = extracted.shareableUri,
-                                destinationFolderUri = extracted.folderUri
+                                destinationFolderUri = extracted.folderUri,
+                                appInfo = appInfo
                             )
                         )
                     }

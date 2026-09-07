@@ -16,7 +16,8 @@ sealed interface ExtractionState {
         val fileName: String,
         val destinationPath: String,
         val shareableUri: Uri,
-        val destinationFolderUri: Uri?
+        val destinationFolderUri: Uri?,
+        val appInfo: AppInfo? = null
     ) : ExtractionState
 
     data class Error(
