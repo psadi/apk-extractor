@@ -34,6 +34,34 @@ A modern, production-grade native Android application for exploring installed ap
 
 ---
 
+## 📱 Built 100% on Mobile with Gemini & Antigravity CLI (`agy`)
+
+This entire application—including architecture planning, Jetpack Compose UI implementation, Material 3 theming, Storage Access Framework & MediaStore integration, local compilation, GitHub Actions CI/CD setup, and release publishing—was **autonomously developed and built entirely on an Android mobile device** running **Termux** and Google's **Antigravity CLI (`agy`)** powered by **Gemini**.
+
+### 📊 AI Development & Token Usage Statistics
+
+| Metric | Details |
+| :--- | :--- |
+| **Development Device / OS** | Android Mobile via **Termux** (`aarch64` Linux) |
+| **AI Coding Assistant** | **Antigravity CLI (`agy`)** |
+| **Foundation Model** | **Google Gemini (`gemini-3.8-flash`)** |
+| **Model Invocations / Steps** | **373** generations |
+| **Total Input Tokens (Prompt)** | **44,204,383** (~44.2M tokens) |
+| ↳ *Non-cached Prompt Tokens* | 42,352,073 |
+| ↳ *Context-cached Tokens* | 1,852,310 (4.2%) |
+| **Total Output Tokens** | **118,703** (~118.7k tokens) |
+| ↳ *Thinking / Reasoning Tokens* | 74,504 (62.8%) |
+| ↳ *Code Generation & Tool Tokens* | 44,199 |
+| **Total Tokens Processed** | **44,323,086** (~44.3M tokens) |
+| **Peak Context Window Size** | **240,853** tokens (of 256k window) |
+| **Total Model Cost (USD)** | **~$5.69 USD** *(tier-aware Gemini Flash API rates)* |
+| **Files Authored / Configured** | **46** files (Kotlin, Gradle DSL, XML, Workflows) |
+| **Lines of Code Authored** | **~3,200+** lines |
+| **Build & Test Toolchain** | Hermetic Java 17 & Gradle 8.7 via [mise](https://mise.jdx.dev), native Termux `aapt2` |
+
+
+---
+
 ## Getting Started & Build Instructions
 
 This project is configured with [mise](https://mise.jdx.dev) via `.mise.toml` for hermetic and reproducible developer tooling.
