@@ -15,6 +15,7 @@ data class AppInfo(
     val apkPath: String,
     val apkSize: Long,
     val isSystemApp: Boolean,
+    val isUpdatedSystemApp: Boolean = false,
     val firstInstallTime: Long,
     val lastUpdateTime: Long,
     val splitApkPaths: List<String> = emptyList(),

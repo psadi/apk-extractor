@@ -24,8 +24,12 @@ class PreferencesManager(private val context: Context) {
     }
 
     val selectedCategory: Flow<AppCategory> = context.dataStore.data.map { preferences ->
-        val saved = preferences[KEY_SELECTED_CATEGORY]
-        if (saved == AppCategory.SYSTEM.name) AppCategory.SYSTEM else AppCategory.USER
+        when (preferences[KEY_SELECTED_CATEGORY]) {
+            AppCategory.USER.name -> AppCategory.USER
+            AppCategory.SYSTEM.name -> AppCategory.SYSTEM
+            AppCategory.EXTRACTED.name -> AppCategory.EXTRACTED
+            else -> AppCategory.ALL
+        }
     }
 
     suspend fun setCustomFolderUri(uriString: String?) {

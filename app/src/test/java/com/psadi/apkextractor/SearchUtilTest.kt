@@ -1,57 +1,62 @@
 package com.psadi.apkextractor
 
+import com.psadi.apkextractor.data.model.AppInfo
+import com.psadi.apkextractor.data.model.ExtractedApk
 import com.psadi.apkextractor.util.SearchUtil
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SearchUtilTest {
 
     @Test
-    fun testPlayStationAliasesForSonyApp() {
-        val aliases = SearchUtil.getSearchAliases("com.scee.psxandroid", "PS App")
-        
-        assertTrue("Aliases must contain 'playstation'", aliases.any { it.contains("playstation", ignoreCase = true) })
-        assertTrue("Aliases must contain 'sony'", aliases.any { it.contains("sony", ignoreCase = true) })
-        assertTrue("Aliases must contain 'psn'", aliases.any { it.contains("psn", ignoreCase = true) })
-        assertTrue("Aliases must contain 'ps app'", aliases.any { it.contains("ps app", ignoreCase = true) })
+    fun testGenericCamelCaseSplitting() {
+        val aliases = SearchUtil.getSearchAliases("com.example.apkextractor", "APKExtractor")
+        assertTrue("Aliases must contain 'apk extractor'", aliases.contains("apk extractor"))
+        assertTrue("Aliases must contain 'apk'", aliases.contains("apk"))
+        assertTrue("Aliases must contain 'extractor'", aliases.contains("extractor"))
     }
 
     @Test
-    fun testPlayStationBrandTag() {
-        val brandTag = SearchUtil.getBrandTag("com.scee.psxandroid", "PS App")
-        assertNotNull("Brand tag should not be null for PS App", brandTag)
-        assertEquals("PlayStation", brandTag)
+    fun testGenericDelimiterSplittingAndAcronyms() {
+        val aliases = SearchUtil.getSearchAliases("com.example.gamedemo", "Call of Duty")
+        assertTrue("Aliases must contain 'call'", aliases.contains("call"))
+        assertTrue("Aliases must contain 'duty'", aliases.contains("duty"))
+        assertTrue("Aliases must contain acronym 'cod'", aliases.contains("cod"))
     }
 
     @Test
-    fun testGooglePlayStoreAliases() {
-        val aliases = SearchUtil.getSearchAliases("com.android.vending", "Play Store")
-        assertTrue("Aliases must contain 'google play store'", aliases.contains("google play store"))
-        assertTrue("Aliases must contain 'market'", aliases.contains("market"))
-        assertEquals("Play Store", SearchUtil.getBrandTag("com.android.vending", "Play Store"))
+    fun testPackageSegmentExtraction() {
+        val aliases = SearchUtil.getSearchAliases("org.mozilla.firefox", "Browser")
+        assertTrue("Aliases must contain 'mozilla'", aliases.contains("mozilla"))
+        assertTrue("Aliases must contain 'firefox'", aliases.contains("firefox"))
     }
 
     @Test
-    fun testTwitterXAliases() {
-        val aliasesX = SearchUtil.getSearchAliases("com.x.android", "X")
-        assertTrue("Aliases for X must contain 'twitter'", aliasesX.contains("twitter"))
+    fun testGenericQueryMatchingNormalized() {
+        val app = AppInfo(
+            appName = "My Files Manager",
+            packageName = "com.sample.files.manager",
+            versionName = "1.0.0",
+            versionCode = 100L,
+            minSdkVersion = 26,
+            targetSdkVersion = 35,
+            apkPath = "/data/app/com.sample.files.manager/base.apk",
+            apkSize = 15_000_000L,
+            isSystemApp = false,
+            firstInstallTime = 1000L,
+            lastUpdateTime = 2000L,
+            searchAliases = SearchUtil.getSearchAliases("com.sample.files.manager", "My Files Manager")
+        )
 
-        val aliasesTwitter = SearchUtil.getSearchAliases("com.twitter.android", "Twitter")
-        assertTrue("Aliases for Twitter must contain 'x'", aliasesTwitter.contains("x"))
-    }
-
-    @Test
-    fun testQueryMatchingWithAliases() {
-        val queries = listOf("playstation", "PlayStation", "PLAYSTATION", "sony", "ps", "ps app", "psn")
-        val aliases = SearchUtil.getSearchAliases("com.scee.psxandroid", "PS App")
-        
-        for (q in queries) {
-            val matched = "PS App".contains(q, ignoreCase = true) ||
-                    "com.scee.psxandroid".contains(q, ignoreCase = true) ||
-                    aliases.any { it.contains(q, ignoreCase = true) }
-            assertTrue("Query '$q' should match PS App / com.scee.psxandroid", matched)
-        }
+        // Matching without spaces
+        assertTrue(SearchUtil.matchesApp(app, "myfiles"))
+        assertTrue(SearchUtil.matchesApp(app, "filesmanager"))
+        // Matching acronym
+        assertTrue(SearchUtil.matchesApp(app, "mfm"))
+        // Multi-word matching
+        assertTrue(SearchUtil.matchesApp(app, "files manager"))
+        // Partial package matching
+        assertTrue(SearchUtil.matchesApp(app, "sample"))
     }
 }

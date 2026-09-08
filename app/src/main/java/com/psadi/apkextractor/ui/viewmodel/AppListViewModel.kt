@@ -13,6 +13,7 @@ import com.psadi.apkextractor.data.`package`.AppPackageScanner
 import com.psadi.apkextractor.data.preferences.PreferencesManager
 import com.psadi.apkextractor.data.storage.StorageRepository
 import com.psadi.apkextractor.util.IntentUtil
+import com.psadi.apkextractor.util.SearchUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -56,20 +57,34 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             val userCount = apps.count { !it.isSystemApp }
             val systemCount = apps.count { it.isSystemApp }
             val extractedCount = extracted.size
+            val allCount = apps.size
 
             _uiState.update { state ->
                 val filtered = filterAndSortApps(apps, state.searchQuery, state.selectedCategory)
                 val filteredExtracted = filterExtractedApps(extracted, state.searchQuery)
                 val indexMap = computeAlphabetIndexMap(filtered)
+                val trimmed = state.searchQuery.trim()
+                val isSearching = trimmed.isNotEmpty()
+
+                val matchUser = if (isSearching) apps.count { !it.isSystemApp && SearchUtil.matchesApp(it, trimmed) } else userCount
+                val matchSystem = if (isSearching) apps.count { it.isSystemApp && SearchUtil.matchesApp(it, trimmed) } else systemCount
+                val matchAll = if (isSearching) matchUser + matchSystem else allCount
+                val matchExtracted = if (isSearching) extracted.count { SearchUtil.matchesExtracted(it, trimmed) } else extractedCount
+
                 state.copy(
                     isLoading = false,
                     allApps = apps,
                     filteredApps = filtered,
                     allExtractedApps = extracted,
                     filteredExtractedApps = filteredExtracted,
+                    allAppCount = allCount,
                     userAppCount = userCount,
                     systemAppCount = systemCount,
                     extractedAppCount = extractedCount,
+                    searchMatchAllCount = matchAll,
+                    searchMatchUserCount = matchUser,
+                    searchMatchSystemCount = matchSystem,
+                    searchMatchExtractedCount = matchExtracted,
                     alphabetIndexMap = indexMap
                 )
             }
@@ -82,10 +97,17 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             val extracted = storageRepository.getExtractedApks(customUri)
             _uiState.update { state ->
                 val filteredExtracted = filterExtractedApps(extracted, state.searchQuery)
+                val trimmed = state.searchQuery.trim()
+                val matchExtracted = if (trimmed.isNotEmpty()) {
+                    extracted.count { SearchUtil.matchesExtracted(it, trimmed) }
+                } else {
+                    extracted.size
+                }
                 state.copy(
                     allExtractedApps = extracted,
                     filteredExtractedApps = filteredExtracted,
-                    extractedAppCount = extracted.size
+                    extractedAppCount = extracted.size,
+                    searchMatchExtractedCount = matchExtracted
                 )
             }
         }
@@ -96,10 +118,22 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             val filtered = filterAndSortApps(state.allApps, query, state.selectedCategory)
             val filteredExtracted = filterExtractedApps(state.allExtractedApps, query)
             val indexMap = computeAlphabetIndexMap(filtered)
+            val trimmed = query.trim()
+            val isSearching = trimmed.isNotEmpty()
+
+            val matchUser = if (isSearching) state.allApps.count { !it.isSystemApp && SearchUtil.matchesApp(it, trimmed) } else state.userAppCount
+            val matchSystem = if (isSearching) state.allApps.count { it.isSystemApp && SearchUtil.matchesApp(it, trimmed) } else state.systemAppCount
+            val matchAll = if (isSearching) matchUser + matchSystem else state.allAppCount
+            val matchExtracted = if (isSearching) state.allExtractedApps.count { SearchUtil.matchesExtracted(it, trimmed) } else state.extractedAppCount
+
             state.copy(
                 searchQuery = query,
                 filteredApps = filtered,
                 filteredExtractedApps = filteredExtracted,
+                searchMatchAllCount = matchAll,
+                searchMatchUserCount = matchUser,
+                searchMatchSystemCount = matchSystem,
+                searchMatchExtractedCount = matchExtracted,
                 alphabetIndexMap = indexMap
             )
         }
@@ -261,14 +295,7 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
     ): List<ExtractedApk> {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return apps
-        return apps.filter { item ->
-            item.appName.contains(trimmed, ignoreCase = true) ||
-                    item.packageName.contains(trimmed, ignoreCase = true) ||
-                    item.fileName.contains(trimmed, ignoreCase = true) ||
-                    (item.displayBrandTag != null && item.displayBrandTag!!.contains(trimmed, ignoreCase = true)) ||
-                    com.psadi.apkextractor.util.SearchUtil.getSearchAliases(item.packageName, item.appName)
-                        .any { it.contains(trimmed, ignoreCase = true) }
-        }
+        return apps.filter { SearchUtil.matchesExtracted(it, trimmed) }
     }
 
     private fun filterAndSortApps(
@@ -279,19 +306,12 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         val trimmed = query.trim()
         return apps.filter { app ->
             val matchesCategory = when (category) {
+                AppCategory.ALL -> true
                 AppCategory.USER -> !app.isSystemApp
                 AppCategory.SYSTEM -> app.isSystemApp
                 AppCategory.EXTRACTED -> false
             }
-            val matchesQuery = if (trimmed.isEmpty()) {
-                true
-            } else {
-                app.appName.contains(trimmed, ignoreCase = true) ||
-                        app.packageName.contains(trimmed, ignoreCase = true) ||
-                        (app.displayBrandTag != null && app.displayBrandTag!!.contains(trimmed, ignoreCase = true)) ||
-                        app.searchAliases.any { it.contains(trimmed, ignoreCase = true) }
-            }
-            matchesCategory && matchesQuery
+            matchesCategory && SearchUtil.matchesApp(app, trimmed)
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.appName })
     }
 

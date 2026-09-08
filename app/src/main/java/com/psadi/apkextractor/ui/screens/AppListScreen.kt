@@ -125,11 +125,13 @@ fun AppListScreen(
                 )
 
                 // Category Filter Tabs
+                val isSearching = uiState.searchQuery.trim().isNotEmpty()
                 AppFilterTabs(
                     selectedCategory = uiState.selectedCategory,
-                    userCount = uiState.userAppCount,
-                    systemCount = uiState.systemAppCount,
-                    extractedCount = uiState.extractedAppCount,
+                    allCount = if (isSearching) uiState.searchMatchAllCount else uiState.allAppCount,
+                    userCount = if (isSearching) uiState.searchMatchUserCount else uiState.userAppCount,
+                    systemCount = if (isSearching) uiState.searchMatchSystemCount else uiState.systemAppCount,
+                    extractedCount = if (isSearching) uiState.searchMatchExtractedCount else uiState.extractedAppCount,
                     onCategorySelected = { viewModel.onCategorySelected(it) }
                 )
 
@@ -163,17 +165,29 @@ fun AppListScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = if (uiState.searchQuery.isNotEmpty()) {
-                                        "No extracted backups match \"${uiState.searchQuery}\""
-                                    } else {
-                                        "No extracted APK backups found\n\nExtract any app from the Installed or System tabs to view, share, or reinstall backups here."
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.padding(32.dp)
-                                )
+                                ) {
+                                    Text(
+                                        text = if (uiState.searchQuery.isNotEmpty()) {
+                                            "No extracted backups match \"${uiState.searchQuery}\""
+                                        } else {
+                                            "No extracted APK backups found\n\nExtract any app from the Installed or System tabs to view, share, or reinstall backups here."
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    if (uiState.searchQuery.isNotEmpty() && uiState.searchMatchAllCount > 0) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        FilledTonalButton(
+                                            onClick = { viewModel.onCategorySelected(AppCategory.ALL) }
+                                        ) {
+                                            Text("Found ${uiState.searchMatchAllCount} match in installed apps → View All")
+                                        }
+                                    }
+                                }
                             }
                         } else {
                             LazyColumn(
@@ -206,17 +220,60 @@ fun AppListScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = if (uiState.searchQuery.isNotEmpty()) {
-                                    "No applications match \"${uiState.searchQuery}\""
-                                } else {
-                                    "No applications found"
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.padding(32.dp)
-                            )
+                            ) {
+                                Text(
+                                    text = if (uiState.searchQuery.isNotEmpty()) {
+                                        val categoryName = when (uiState.selectedCategory) {
+                                            AppCategory.ALL -> "all apps"
+                                            AppCategory.USER -> "installed apps"
+                                            AppCategory.SYSTEM -> "system apps"
+                                            AppCategory.EXTRACTED -> "backups"
+                                        }
+                                        "No applications match \"${uiState.searchQuery}\" in $categoryName"
+                                    } else {
+                                        "No applications found"
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (uiState.searchQuery.isNotEmpty()) {
+                                    if (uiState.selectedCategory == AppCategory.USER && uiState.searchMatchSystemCount > 0) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        FilledTonalButton(
+                                            onClick = { viewModel.onCategorySelected(AppCategory.SYSTEM) }
+                                        ) {
+                                            Text("Found ${uiState.searchMatchSystemCount} match in System apps → Switch")
+                                        }
+                                    } else if (uiState.selectedCategory == AppCategory.SYSTEM && uiState.searchMatchUserCount > 0) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        FilledTonalButton(
+                                            onClick = { viewModel.onCategorySelected(AppCategory.USER) }
+                                        ) {
+                                            Text("Found ${uiState.searchMatchUserCount} match in Installed apps → Switch")
+                                        }
+                                    }
+                                    if (uiState.searchMatchExtractedCount > 0) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        OutlinedButton(
+                                            onClick = { viewModel.onCategorySelected(AppCategory.EXTRACTED) }
+                                        ) {
+                                            Text("Found ${uiState.searchMatchExtractedCount} match in Backups → Switch")
+                                        }
+                                    }
+                                    if (uiState.selectedCategory != AppCategory.ALL && uiState.searchMatchAllCount > 0) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        TextButton(
+                                            onClick = { viewModel.onCategorySelected(AppCategory.ALL) }
+                                        ) {
+                                            Text("Show All (${uiState.searchMatchAllCount})")
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
                         // App List

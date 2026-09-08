@@ -65,8 +65,10 @@ class AppPackageScanner(private val context: Context) {
             }
         } else 0L
 
-        val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        val isPureSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+        val isUpdatedSystem = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        // Preinstalled apps updated by the user (from Play Store or sideload) run from /data/app and are user-accessible
+        val isSystemApp = isPureSystem && !isUpdatedSystem
 
         val minSdkVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             appInfo.minSdkVersion
@@ -92,6 +94,7 @@ class AppPackageScanner(private val context: Context) {
             apkPath = apkPath,
             apkSize = totalSize,
             isSystemApp = isSystemApp,
+            isUpdatedSystemApp = isUpdatedSystem,
             firstInstallTime = pkg?.firstInstallTime ?: 0L,
             lastUpdateTime = pkg?.lastUpdateTime ?: 0L,
             splitApkPaths = splitApkPaths,

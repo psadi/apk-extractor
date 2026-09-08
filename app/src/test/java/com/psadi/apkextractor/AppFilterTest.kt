@@ -13,46 +13,50 @@ class AppFilterTest {
 
     private val sampleApps = listOf(
         AppInfo(
-            appName = "PS App",
-            packageName = "com.scee.psxandroid",
-            versionName = "26.8.0",
-            versionCode = 26080002L,
+            appName = "Document Scanner",
+            packageName = "com.example.docscanner",
+            versionName = "2.1.0",
+            versionCode = 210L,
             minSdkVersion = 26,
             targetSdkVersion = 35,
-            apkPath = "/data/app/com.scee.psxandroid/base.apk",
-            apkSize = 80_000_000L,
+            apkPath = "/data/app/com.example.docscanner/base.apk",
+            apkSize = 45_000_000L,
             isSystemApp = false,
+            isUpdatedSystemApp = false,
             firstInstallTime = 1000L,
             lastUpdateTime = 2000L,
-            searchAliases = SearchUtil.getSearchAliases("com.scee.psxandroid", "PS App")
+            searchAliases = SearchUtil.getSearchAliases("com.example.docscanner", "Document Scanner")
         ),
         AppInfo(
-            appName = "Play Store",
-            packageName = "com.android.vending",
-            versionName = "40.0.0",
-            versionCode = 84000000L,
+            appName = "System Settings",
+            packageName = "com.android.settings",
+            versionName = "15.0.0",
+            versionCode = 1500L,
             minSdkVersion = 26,
             targetSdkVersion = 35,
-            apkPath = "/system/priv-app/Phonesky/Phonesky.apk",
-            apkSize = 50_000_000L,
+            apkPath = "/system/priv-app/Settings/Settings.apk",
+            apkSize = 30_000_000L,
             isSystemApp = true,
+            isUpdatedSystemApp = false,
             firstInstallTime = 1000L,
             lastUpdateTime = 2000L,
-            searchAliases = SearchUtil.getSearchAliases("com.android.vending", "Play Store")
+            searchAliases = SearchUtil.getSearchAliases("com.android.settings", "System Settings")
         ),
         AppInfo(
-            appName = "Calculator",
-            packageName = "com.oneplus.calculator",
-            versionName = "2.0.1",
-            versionCode = 201L,
+            appName = "Camera Pro",
+            packageName = "com.oem.camera",
+            versionName = "5.0.1",
+            versionCode = 501L,
             minSdkVersion = 26,
             targetSdkVersion = 35,
-            apkPath = "/system/app/Calculator/Calculator.apk",
-            apkSize = 10_000_000L,
-            isSystemApp = true,
+            apkPath = "/data/app/com.oem.camera/base.apk",
+            apkSize = 65_000_000L,
+            // Preinstalled app updated by user via store -> treated as user app
+            isSystemApp = false,
+            isUpdatedSystemApp = true,
             firstInstallTime = 1000L,
-            lastUpdateTime = 2000L,
-            searchAliases = emptyList()
+            lastUpdateTime = 3000L,
+            searchAliases = SearchUtil.getSearchAliases("com.oem.camera", "Camera Pro")
         )
     )
 
@@ -64,80 +68,73 @@ class AppFilterTest {
         val trimmed = query.trim()
         return apps.filter { app ->
             val matchesCategory = when (category) {
+                AppCategory.ALL -> true
                 AppCategory.USER -> !app.isSystemApp
                 AppCategory.SYSTEM -> app.isSystemApp
                 AppCategory.EXTRACTED -> false
             }
-            val matchesQuery = if (trimmed.isEmpty()) {
-                true
-            } else {
-                app.appName.contains(trimmed, ignoreCase = true) ||
-                        app.packageName.contains(trimmed, ignoreCase = true) ||
-                        (app.displayBrandTag != null && app.displayBrandTag!!.contains(trimmed, ignoreCase = true)) ||
-                        app.searchAliases.any { it.contains(trimmed, ignoreCase = true) }
-            }
+            val matchesQuery = SearchUtil.matchesApp(app, trimmed)
             matchesCategory && matchesQuery
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.appName })
     }
 
     @Test
-    fun testCategoryFiltering() {
+    fun testCategoryFilteringWithUpdatedSystemApp() {
+        val allApps = filterApps(sampleApps, "", AppCategory.ALL)
+        assertEquals(3, allApps.size)
+
+        // User tab should include both standard user apps and updated system apps
         val userApps = filterApps(sampleApps, "", AppCategory.USER)
-        assertEquals(1, userApps.size)
-        assertEquals("PS App", userApps[0].appName)
+        assertEquals(2, userApps.size)
+        assertTrue(userApps.any { it.appName == "Document Scanner" })
+        assertTrue(userApps.any { it.appName == "Camera Pro" })
 
+        // System tab should only contain pure system apps
         val systemApps = filterApps(sampleApps, "", AppCategory.SYSTEM)
-        assertEquals(2, systemApps.size)
+        assertEquals(1, systemApps.size)
+        assertEquals("System Settings", systemApps[0].appName)
     }
 
     @Test
-    fun testPlaystationSearchFindsPsApp() {
-        // User searches for "playstation" in User category
-        val results = filterApps(sampleApps, "playstation", AppCategory.USER)
+    fun testAllCategorySearch() {
+        val results = filterApps(sampleApps, "pro", AppCategory.ALL)
         assertEquals(1, results.size)
-        assertEquals("PS App", results[0].appName)
-        assertEquals("com.scee.psxandroid", results[0].packageName)
-        assertEquals("PlayStation", results[0].displayBrandTag)
+        assertEquals("Camera Pro", results[0].appName)
     }
 
     @Test
-    fun testSonySearchFindsPsApp() {
-        val results = filterApps(sampleApps, "sony", AppCategory.USER)
+    fun testSearchByPackageSegment() {
+        val results = filterApps(sampleApps, "docscanner", AppCategory.ALL)
         assertEquals(1, results.size)
-        assertEquals("PS App", results[0].appName)
+        assertEquals("Document Scanner", results[0].appName)
     }
 
     @Test
-    fun testPlayStoreSearch() {
-        val results = filterApps(sampleApps, "google play", AppCategory.SYSTEM)
+    fun testSearchByAcronym() {
+        val results = filterApps(sampleApps, "ds", AppCategory.ALL)
         assertEquals(1, results.size)
-        assertEquals("Play Store", results[0].appName)
+        assertEquals("Document Scanner", results[0].appName)
     }
 
     @Test
-    fun testExtractedApkSearchWithAliases() {
+    fun testExtractedApkGenericSearch() {
         val mockUri = org.mockito.Mockito.mock(Uri::class.java)
         val extractedApk = ExtractedApk(
-            fileName = "PS_App_v26.8.0.apk",
+            fileName = "Document_Scanner_v2.1.0.apk",
             fileUri = mockUri,
-            filePath = "/storage/emulated/0/Download/APK_Extractor/PS_App_v26.8.0.apk",
-            fileSize = 78_639_573L,
+            filePath = "/storage/emulated/0/Download/APK_Extractor/Document_Scanner_v2.1.0.apk",
+            fileSize = 45_000_000L,
             lastModified = System.currentTimeMillis(),
-            appName = "PS App",
-            packageName = "com.scee.psxandroid",
-            versionName = "26.8.0",
-            versionCode = 26080002L,
+            appName = "Document Scanner",
+            packageName = "com.example.docscanner",
+            versionName = "2.1.0",
+            versionCode = 210L,
             isSplitBundle = false
         )
 
-        val query = "playstation"
-        val matches = extractedApk.appName.contains(query, ignoreCase = true) ||
-                extractedApk.packageName.contains(query, ignoreCase = true) ||
-                extractedApk.fileName.contains(query, ignoreCase = true) ||
-                (extractedApk.displayBrandTag != null && extractedApk.displayBrandTag!!.contains(query, ignoreCase = true)) ||
-                SearchUtil.getSearchAliases(extractedApk.packageName, extractedApk.appName)
-                    .any { it.contains(query, ignoreCase = true) }
-
-        assertTrue("Extracted APK should match 'playstation' query", matches)
+        assertTrue(SearchUtil.matchesExtracted(extractedApk, "document"))
+        assertTrue(SearchUtil.matchesExtracted(extractedApk, "scanner"))
+        assertTrue(SearchUtil.matchesExtracted(extractedApk, "docscanner"))
+        assertTrue(SearchUtil.matchesExtracted(extractedApk, "ds"))
     }
 }

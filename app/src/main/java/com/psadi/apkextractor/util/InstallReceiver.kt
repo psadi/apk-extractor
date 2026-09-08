@@ -37,6 +37,12 @@ class InstallReceiver : BroadcastReceiver() {
             }
             PackageInstaller.STATUS_SUCCESS -> {
                 Toast.makeText(context, "$appName installed successfully!", Toast.LENGTH_LONG).show()
+                try {
+                    val refreshIntent = Intent("com.psadi.apkextractor.REFRESH_APPS").apply {
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(refreshIntent)
+                } catch (_: Exception) {}
             }
             else -> {
                 val errorMsg = message ?: "Status code $status"

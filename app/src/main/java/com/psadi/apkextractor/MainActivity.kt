@@ -1,15 +1,23 @@
 package com.psadi.apkextractor
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.psadi.apkextractor.ui.screens.AppListScreen
 import com.psadi.apkextractor.ui.theme.ApkExtractorTheme
 import com.psadi.apkextractor.ui.viewmodel.AppListViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -23,15 +31,13 @@ class MainActivity : ComponentActivity() {
                 val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
                         Intent.FLAG_GRANT_WRITE_URI_PERMISSION
                 contentResolver.takePersistableUriPermission(uri, takeFlags)
-            } catch (e: Exception) {
-                // Log or handle if persistable permissions not supported
-            }
+            } catch (_: Exception) {}
             viewModel.setCustomFolderUri(uri)
         }
     }
 
-    private val packageChangeReceiver = object : android.content.BroadcastReceiver() {
-        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+    private val packageChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
             viewModel.loadApps(showLoading = false)
         }
     }
@@ -39,6 +45,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // Register package receivers for full activity lifetime so background/external installs
+        // are never missed while the activity is paused behind an installer or store dialog
+        val systemFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addDataScheme("package")
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(packageChangeReceiver, systemFilter, ContextCompat.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(packageChangeReceiver, systemFilter)
+            }
+        } catch (_: Exception) {}
+
+        val internalFilter = IntentFilter("com.psadi.apkextractor.REFRESH_APPS")
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(packageChangeReceiver, internalFilter, ContextCompat.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(packageChangeReceiver, internalFilter)
+            }
+        } catch (_: Exception) {}
 
         setContent {
             ApkExtractorTheme {
@@ -54,26 +85,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh apps silently on resume (e.g. after installing or uninstalling an app)
+        // Immediate silent refresh
         viewModel.loadApps(showLoading = false)
 
-        val filter = android.content.IntentFilter().apply {
-            addAction(Intent.ACTION_PACKAGE_ADDED)
-            addAction(Intent.ACTION_PACKAGE_REMOVED)
-            addAction(Intent.ACTION_PACKAGE_REPLACED)
-            addDataScheme("package")
+        // Delayed secondary refresh to allow PackageManager cache to settle after external install/uninstall
+        lifecycleScope.launch {
+            delay(1200)
+            viewModel.loadApps(showLoading = false)
         }
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(packageChangeReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
-            } else {
-                registerReceiver(packageChangeReceiver, filter)
-            }
-        } catch (_: Exception) {}
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onDestroy() {
+        super.onDestroy()
         try {
             unregisterReceiver(packageChangeReceiver)
         } catch (_: Exception) {}

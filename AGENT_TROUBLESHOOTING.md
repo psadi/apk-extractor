@@ -207,19 +207,29 @@ In `StorageRepository.deleteExtractedApk()`:
 
 ---
 
-### 10. Brand Alias Search Discrepancies (e.g. PlayStation vs "PS App")
+### 10. Generic Tokenization & Search Architecture (Zero Hardcoded App Names)
 
 #### The Symptom:
-Searching for "PlayStation" returned zero results even after installing the official PlayStation app from Google Play Store.
+Users reported apps "disappearing" or not matching searches when interacting with them (e.g. apps updated from Play Store or OEM preinstalls). Hardcoding specific app names (like "PlayStation" or "Facebook") is brittle and fails for thousands of other apps.
 
 #### Root Cause:
-Sony's AndroidManifest specifies `android:label="PS App"` and package name `com.scee.psxandroid`. Substring search for "playstation" or "sony" matches neither the label nor the package name.
+1. Classification bug: OEM-preinstalled apps updated via store received `FLAG_UPDATED_SYSTEM_APP` and were categorized as `isSystemApp = true`, hiding them from the Installed tab.
+2. Search was tab-locked with no default `ALL` category.
+3. Matching was naive substring-only without space/punctuation normalization or CamelCase/acronym handling.
 
 #### Resolution:
-1. Created `SearchUtil.kt` defining brand alias synonyms (`playstation`, `sony`, `psn`, `ps4`, `ps5` for `com.scee.psxandroid`; `google play store`, `market` for `com.android.vending`, etc.).
-2. Integrated alias matching into `AppListViewModel.filterAndSortApps()` and `filterExtractedApps()`.
-3. Displayed a prominent brand tag badge (e.g. `[PlayStation]`) beside the app label in `AppCardItem.kt` and `ExtractedApkCardItem.kt`.
-4. Automated verification via unit test suite (`SearchUtilTest.kt` and `AppFilterTest.kt`).
+1. **Generic Classification:** `isSystemApp = isPureSystem && !isUpdatedSystem`. Any app updated or installed by the user is treated as user-accessible (`!isSystemApp`).
+2. **Default `ALL` Category:** Added `AppCategory.ALL` as the default category so users see all applications without needing to guess if an OEM preloaded it.
+3. **100% Generic Tokenization in `SearchUtil.kt` (No Hardcoding):**
+   - Delimiter splitting (spaces, dashes, dots, underscores).
+   - CamelCase boundary splitting (e.g. `ApkExtractor` -> `["apk", "extractor"]`, `WhatsApp` -> `["whats", "app"]`).
+   - Space/punctuation-stripped normalization (e.g. searching "myfiles" matches "My Files", searching "playstation" matches "Play Station").
+   - Acronym / initialism generation (e.g. "Call of Duty" -> "cod", "Document Scanner" -> "ds").
+   - Segment-isolated package name matching (e.g. matching "docscanner" or "camera" without cross-dot collisions).
+   - Multi-word matching across label and package segments.
+4. **Live Cross-Tab Counts & Switching Suggestions:** Filter tabs dynamically display live match counts while searching, with 1-tap suggestion buttons when a search matches apps in other categories.
+5. **Robust Lifecycle Refresh:** `packageChangeReceiver` registered from `onCreate` to `onDestroy`, plus dual-refresh on `onResume()` (immediate + 1200ms delayed) so store installs are never missed.
+6. **Automated Verification:** Comprehensive unit tests in `SearchUtilTest.kt` and `AppFilterTest.kt` ensuring generic handling across varied app profiles.
 
 ---
 

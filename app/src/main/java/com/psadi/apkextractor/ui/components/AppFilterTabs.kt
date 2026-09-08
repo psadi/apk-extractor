@@ -12,12 +12,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.psadi.apkextractor.data.model.AppCategory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppFilterTabs(
     selectedCategory: AppCategory,
+    allCount: Int,
     userCount: Int,
     systemCount: Int,
     extractedCount: Int,
@@ -27,15 +29,30 @@ fun AppFilterTabs(
     SingleChoiceSegmentedButtonRow(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
+        SegmentedButton(
+            selected = selectedCategory == AppCategory.ALL,
+            onClick = { onCategorySelected(AppCategory.ALL) },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 4),
+            label = {
+                Text(
+                    text = "All ($allCount)",
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        )
+
         SegmentedButton(
             selected = selectedCategory == AppCategory.USER,
             onClick = { onCategorySelected(AppCategory.USER) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 4),
             label = {
                 Text(
                     text = "Installed ($userCount)",
+                    fontSize = 11.sp,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -45,10 +62,11 @@ fun AppFilterTabs(
         SegmentedButton(
             selected = selectedCategory == AppCategory.SYSTEM,
             onClick = { onCategorySelected(AppCategory.SYSTEM) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 4),
             label = {
                 Text(
                     text = "System ($systemCount)",
+                    fontSize = 11.sp,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -58,10 +76,11 @@ fun AppFilterTabs(
         SegmentedButton(
             selected = selectedCategory == AppCategory.EXTRACTED,
             onClick = { onCategorySelected(AppCategory.EXTRACTED) },
-            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+            shape = SegmentedButtonDefaults.itemShape(index = 3, count = 4),
             label = {
                 Text(
-                    text = "Extracted ($extractedCount)",
+                    text = "Backups ($extractedCount)",
+                    fontSize = 11.sp,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
