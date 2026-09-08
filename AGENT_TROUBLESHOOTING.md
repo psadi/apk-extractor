@@ -174,6 +174,62 @@ android.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2
 
 ---
 
+### 8. Live Lifecycle & Package Broadcast Auto-Refresh
+
+#### The Symptom:
+When an extracted APK is installed (or an app is installed/uninstalled from Google Play Store), returning to APK Extractor does not display the newly installed package in search or the app list.
+
+#### Root Cause:
+`AppListViewModel` only queried `AppPackageScanner` once during `init`. There was no lifecycle listener (`onResume`) or system broadcast receiver for package changes.
+
+#### Resolution:
+In `MainActivity.kt`:
+1. Register a dynamic `BroadcastReceiver` for `ACTION_PACKAGE_ADDED`, `ACTION_PACKAGE_REMOVED`, and `ACTION_PACKAGE_REPLACED` with the `package:` data scheme (using `ContextCompat.RECEIVER_EXPORTED` on API 33+).
+2. Trigger `viewModel.loadApps(showLoading = false)` in `onResume()` for silent background synchronization without UI flicker.
+
+---
+
+### 9. Scoped Storage Deletion of Extracted APKs on Android 10+ (API 29–35)
+
+#### The Symptom:
+Deleting an extracted APK or split bundle from the Extracted Backups tab did not delete the physical file on disk.
+
+#### Root Cause:
+On Android 10+ (API 29–35), direct `java.io.File(path).delete()` fails silently in shared storage (`Downloads/APK_Extractor/`) under Scoped Storage restrictions. Files created via MediaStore must be removed via `ContentResolver.delete()`.
+
+#### Resolution:
+In `StorageRepository.deleteExtractedApk()`:
+1. Query `MediaStore.Downloads.EXTERNAL_CONTENT_URI` by `DISPLAY_NAME` and delete the matching MediaStore URI.
+2. Query `MediaStore.Files.getContentUri("external")` by `DATA` (file path) and delete.
+3. For SAF folders, delete via `DocumentsContract.deleteDocument(context.contentResolver, uri)`.
+4. Fall back to `File.delete()` / `File.deleteRecursively()`.
+5. In `AppListViewModel.kt`, call `loadExtractedApps()` unconditionally so the UI always reflects storage state.
+
+---
+
+### 10. Brand Alias Search Discrepancies (e.g. PlayStation vs "PS App")
+
+#### The Symptom:
+Searching for "PlayStation" returned zero results even after installing the official PlayStation app from Google Play Store.
+
+#### Root Cause:
+Sony's AndroidManifest specifies `android:label="PS App"` and package name `com.scee.psxandroid`. Substring search for "playstation" or "sony" matches neither the label nor the package name.
+
+#### Resolution:
+1. Created `SearchUtil.kt` defining brand alias synonyms (`playstation`, `sony`, `psn`, `ps4`, `ps5` for `com.scee.psxandroid`; `google play store`, `market` for `com.android.vending`, etc.).
+2. Integrated alias matching into `AppListViewModel.filterAndSortApps()` and `filterExtractedApps()`.
+3. Displayed a prominent brand tag badge (e.g. `[PlayStation]`) beside the app label in `AppCardItem.kt` and `ExtractedApkCardItem.kt`.
+4. Automated verification via unit test suite (`SearchUtilTest.kt` and `AppFilterTest.kt`).
+
+---
+
+### 11. Testing & Release Publishing Gating
+
+#### The Guideline:
+- Never push a git tag (`v*`) or run `gh release create` without explicit confirmation from the user.
+- Commits pushed to `main` trigger GitHub Actions to build and upload testable artifacts (`apk-extractor-builds`) without publishing a GitHub Release.
+- Keep local test APKs refreshed at `/storage/emulated/0/Download/APK-Extractor-release.apk`.
+
 ## 📋 Quick Command Cheat Sheet for Future Agents
 
 ```bash

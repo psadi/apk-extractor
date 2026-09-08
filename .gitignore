@@ -32,3 +32,12 @@ local.properties
 
 # Kotlin
 .kotlin/
+
+# Android outputs
+*.apk
+*.ap_
+*.aab
+
+# graphify
+graphify-out/
+.graphify/
