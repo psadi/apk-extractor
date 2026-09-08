@@ -157,9 +157,9 @@ This app declares the `android.permission.QUERY_ALL_PACKAGES` permission in `And
 
 ---
 
-## 💖 Support & Donations
+## 💖 Support & Donations (Vote of Trust & Transparency)
 
-APK Extractor is 100% free and open source. If you find this project helpful and want to support ongoing development, consider donating:
+APK Extractor is 100% free and open source. **100% of all contributions go solely and directly toward the development of the app** — adding new features, resolving bug reports, and funding AI token usage and API spends alone. There is zero ambiguity: your support directly fuels continuous mobile-first development and open-source improvements.
 
 - **GitHub Sponsors:** [github.com/sponsors/psadi](https://github.com/sponsors/psadi)
 - **PayPal:** [paypal.me/psadithya](https://paypal.me/psadithya)

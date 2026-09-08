@@ -162,7 +162,7 @@ fun SettingsDialog(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "APK Extractor is 100% free and open source. If this tool saves you time, consider supporting ongoing development!",
+                    text = "100% of all contributions go solely and directly to the development of APK Extractor — adding new features, resolving bugs, and funding AI token usage and API spends alone. Complete transparency and an open vote of confidence!",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
