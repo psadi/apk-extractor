@@ -1,9 +1,9 @@
 # AI Usage Quota & Cost Transparency 📊
 
 [![AI Model](https://img.shields.io/badge/AI_Model-Gemini_Flash-8E75B2?logo=googlegemini&logoColor=white)](USAGE_QUOTA.md)
-[![Input Tokens](https://img.shields.io/badge/Input_Tokens-114.0M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
-[![Output Tokens](https://img.shields.io/badge/Output_Tokens-385K-blueviolet)](USAGE_QUOTA.md)
-[![AI Spend](https://img.shields.io/badge/AI_Spend-$14.61_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
+[![Input Tokens](https://img.shields.io/badge/Input_Tokens-150.0M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
+[![Output Tokens](https://img.shields.io/badge/Output_Tokens-564K-blueviolet)](USAGE_QUOTA.md)
+[![AI Spend](https://img.shields.io/badge/AI_Spend-$19.18_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
 [![License](https://img.shields.io/badge/License-AGPL_3.0-blue.svg)](LICENSE)
 
 This document provides a transparent, verifiable accounting of the compute, token usage, and financial expenditures incurred during the autonomous mobile development of **APK Extractor**.
@@ -18,19 +18,19 @@ The entire project was architected, coded, compiled, tested, and released direct
 | :--- | :--- |
 | **Foundation Model** | **Google Gemini Flash (`gemini-3.8-flash`)** |
 | **Development Environment** | Android Mobile via **Termux** (`aarch64` Linux) |
-| **Total Model Invocations / Steps** | **922** generations |
-| **Total Input Tokens (Prompt)** | **114,021,143** (~114.0M tokens) |
-| ↳ *Non-cached Prompt Tokens* | 107,854,939 (94.6%) |
-| ↳ *Context-cached Tokens* | 6,166,204 (5.4%) |
-| **Total Output Tokens** | **384,714** (~384.7k tokens) |
-| ↳ *Thinking / Reasoning Tokens* | 201,866 (52.5%) |
-| ↳ *Code Generation & Tool Tokens* | 182,848 (47.5%) |
-| **Total Tokens Processed** | **114,405,857** (~114.4M tokens) |
+| **Total Model Invocations / Steps** | **1,228** generations |
+| **Total Input Tokens (Prompt)** | **149,944,200** (~150.0M tokens) |
+| ↳ *Non-cached Prompt Tokens* | 141,896,243 (94.6%) |
+| ↳ *Context-cached Tokens* | 8,047,957 (5.4%) |
+| **Total Output Tokens** | **564,015** (~564.0k tokens) |
+| ↳ *Thinking / Reasoning Tokens* | 285,747 (50.7%) |
+| ↳ *Code Generation & Tool Tokens* | 278,268 (49.3%) |
+| **Total Tokens Processed** | **150,508,215** (~150.5M tokens) |
 | **Peak Context Window Size** | **255,849** tokens (of 256k window) |
-| **Total AI Compute Spend (USD)** | **$14.61 USD** |
-| **Average Cost per Release** | **~$2.44 USD** |
-| **Files Authored / Maintained** | **48** files |
-| **Total Code Base** | **~4,100+** lines of Kotlin, Compose, XML, Gradle DSL |
+| **Total AI Compute Spend (USD)** | **$19.18 USD** |
+| **Average Cost per Release** | **~$2.74 USD** |
+| **Files Authored / Maintained** | **49** files |
+| **Total Code Base** | **~4,400+** lines of Kotlin, Compose, XML, Gradle DSL |
 
 ---
 
@@ -61,7 +61,8 @@ Every milestone represents a complete software engineering cycle: requirement an
 | **v1.1.2** | 2026-09-08 05:49 | **Split Bundler & Inspector:** `.apks` Zip bundle generator, magnifying glass architecture inspector (`Search` icon), post-extraction banner cleanup, and comprehensive `AGENT_TROUBLESHOOTING.md`. | 101 | 14,309,874 | 547,852 | 56,505 | 24,159 | **$1.82** | **$11.24** |
 | **v1.1.3** | 2026-09-08 05:54 | **Feedback & Layout Fixes:** In-app User Feedback dialog (GitHub Issues & Google Play Store), responsive `FlowRow` chip wrapping with ellipsis for long version names, and experimental layout opt-ins. | 49 | 5,401,596 | 236,049 | 16,007 | 7,146 | **$0.76** | **$12.00** |
 | **v1.2.0** | 2026-09-08 23:55 | **Auto-Refresh & Extracted Backups:** Real-time auto-refresh on foreground (`onResume`) & package broadcast (`ACTION_PACKAGE_ADDED/REMOVED`), dedicated **Extracted Backups** tab with search, one-tap install, split bundle installer, share, and delete. | 170 | 20,633,162 | 2,059,477 | 92,333 | 51,594 | **$2.61** | **$14.61** |
-| **Total** | — | — | **922** | **114,021,143** | **6,166,204** | **384,714** | **201,866** | **$14.61** | **$14.61** |
+| **v1.2.1-dev** | 2026-09-09 01:45 | **Generic Search & Broadcast Refresh:** 100% generic tokenization (CamelCase, delimiters, acronyms, segment isolation, zero hardcoding), `AppCategory.ALL` default tab, updated system app handling, `onCreate`/`onDestroy` broadcast lifecycle, Scoped Storage deletion fix. | 306 | 35,923,057 | 1,881,753 | 179,301 | 83,881 | **$4.57** | **$19.18** |
+| **Total** | — | — | **1,228** | **149,944,200** | **8,047,957** | **564,015** | **285,747** | **$19.18** | **$19.18** |
 
 ---
 

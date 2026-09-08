@@ -4,9 +4,9 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/psadi/apk-extractor/build-and-release.yml?branch=main&label=Build&logo=github)](https://github.com/psadi/apk-extractor/actions)
 [![Release](https://img.shields.io/github/v/release/psadi/apk-extractor?label=Release&logo=android&color=success)](https://github.com/psadi/apk-extractor/releases/latest)
 [![AI Model](https://img.shields.io/badge/AI_Model-Gemini_Flash-8E75B2?logo=googlegemini&logoColor=white)](USAGE_QUOTA.md)
-[![Input Tokens](https://img.shields.io/badge/Input_Tokens-114.0M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
-[![Output Tokens](https://img.shields.io/badge/Output_Tokens-385K-blueviolet)](USAGE_QUOTA.md)
-[![AI Spend](https://img.shields.io/badge/AI_Spend-$14.61_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
+[![Input Tokens](https://img.shields.io/badge/Input_Tokens-150.0M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
+[![Output Tokens](https://img.shields.io/badge/Output_Tokens-564K-blueviolet)](USAGE_QUOTA.md)
+[![AI Spend](https://img.shields.io/badge/AI_Spend-$19.18_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/psadi)
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/psadithya)
 
