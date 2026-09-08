@@ -3,10 +3,6 @@
 [![License](https://img.shields.io/badge/License-AGPL_3.0-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/psadi/apk-extractor/build-and-release.yml?branch=main&label=Build&logo=github)](https://github.com/psadi/apk-extractor/actions)
 [![Release](https://img.shields.io/github/v/release/psadi/apk-extractor?label=Release&logo=android&color=success)](https://github.com/psadi/apk-extractor/releases/latest)
-[![AI Model](https://img.shields.io/badge/AI_Model-Gemini_Flash-8E75B2?logo=googlegemini&logoColor=white)](USAGE_QUOTA.md)
-[![Input Tokens](https://img.shields.io/badge/Input_Tokens-150.0M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
-[![Output Tokens](https://img.shields.io/badge/Output_Tokens-564K-blueviolet)](USAGE_QUOTA.md)
-[![AI Spend](https://img.shields.io/badge/AI_Spend-$19.18_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/psadi)
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/psadithya)
 
@@ -54,20 +50,6 @@ A modern, production-grade native Android application for exploring installed ap
 ## 📱 Built 100% on Mobile with Gemini & Antigravity CLI (`agy`)
 
 This entire application—architecture planning, Jetpack Compose UI, Material 3 theming, Storage Access Framework & MediaStore integration, Split APK bundling, local compilation, GitHub Actions CI/CD, and release publishing—was **autonomously developed and built entirely on an Android mobile device** running **Termux** and Google's **Antigravity CLI (`agy`)** powered by **Gemini**.
-
-### 📊 AI Token Usage & Cost Transparency
-
-| Metric | Highlights |
-| :--- | :--- |
-| **Cumulative AI Spend** | **$14.61 USD** |
-| **Total Tokens Processed** | **114,405,857** (~114.4M tokens) |
-| **Input / Output Breakdown** | 114.0M prompt tokens (6.17M cached) • 385K output tokens (202K thinking) |
-| **Generations / Steps** | **922** model invocations across 6 production releases |
-| **Environment** | Termux (`aarch64` Linux), hermetic JDK 17 & Gradle 8.7 via [mise](https://mise.jdx.dev), native `aapt2` |
-| **Complete Accounting** | 👉 **[View Complete Usage Quota & Cost Breakdown (USAGE_QUOTA.md)](USAGE_QUOTA.md)** |
-
-> [!TIP]
-> For complete financial transparency and a release-by-release breakdown of tokens, thinking overhead, and tiered pricing across every release (v1.0.0 through v1.2.0), see [`USAGE_QUOTA.md`](USAGE_QUOTA.md).
 
 ## Getting Started & Build Instructions
 
@@ -172,7 +154,7 @@ For engineers and AI agents working on this repository, see [`AGENT_TROUBLESHOOT
 
 ## Support & Donations
 
-APK Extractor is 100% free and open source. **100% of all contributions go solely and directly toward the development of the app** — adding new features, resolving bug reports, and funding AI token usage and API spends alone. There is zero ambiguity: your support directly fuels continuous mobile-first development and open-source improvements.
+APK Extractor is 100% free and open source. **100% of all contributions go solely and directly toward the development of the app** — adding new features, resolving bug reports, and supporting open-source development and mobile infrastructure. There is zero ambiguity: your support directly fuels continuous mobile-first development and open-source improvements.
 
 - **GitHub Sponsors:** [github.com/sponsors/psadi](https://github.com/sponsors/psadi)
 - **PayPal:** [paypal.me/psadithya](https://paypal.me/psadithya)
