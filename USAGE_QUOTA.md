@@ -1,5 +1,11 @@
 # AI Usage Quota & Cost Transparency 📊
 
+[![AI Model](https://img.shields.io/badge/AI_Model-Gemini_Flash-8E75B2?logo=googlegemini&logoColor=white)](USAGE_QUOTA.md)
+[![Input Tokens](https://img.shields.io/badge/Input_Tokens-94.9M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
+[![Output Tokens](https://img.shields.io/badge/Output_Tokens-308K-blueviolet)](USAGE_QUOTA.md)
+[![AI Spend](https://img.shields.io/badge/AI_Spend-$12.11_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
+[![License](https://img.shields.io/badge/License-AGPL_3.0-blue.svg)](LICENSE)
+
 This document provides a transparent, verifiable accounting of the compute, token usage, and financial expenditures incurred during the autonomous mobile development of **APK Extractor**.
 
 The entire project was architected, coded, compiled, tested, and released directly on an Android mobile device via **Termux** and Google's **Antigravity CLI (`agy`)** powered by **Gemini**.
@@ -10,6 +16,8 @@ The entire project was architected, coded, compiled, tested, and released direct
 
 | Metric | Cumulative Total |
 | :--- | :--- |
+| **Foundation Model** | **Google Gemini Flash (`gemini-3.8-flash`)** |
+| **Development Environment** | Android Mobile via **Termux** (`aarch64` Linux) |
 | **Total Model Invocations / Steps** | **787** generations |
 | **Total Input Tokens (Prompt)** | **94,928,764** (~94.9M tokens) |
 | ↳ *Non-cached Prompt Tokens* | 90,646,750 (95.5%) |
