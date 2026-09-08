@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -273,49 +273,29 @@ fun AppListScreen(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Action: Install APK
+                                // Action: Share APK
                                 Button(
-                                    onClick = {
-                                        if (success.appInfo != null) {
-                                            IntentUtil.installAppPackage(context, success.appInfo)
-                                        } else {
-                                            IntentUtil.installApk(context, success.shareableUri, success.appName)
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1.1f),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.InstallMobile,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Install")
-                                }
-
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                // Action: Share
-                                FilledTonalButton(
                                     onClick = {
                                         IntentUtil.shareApk(context, success.shareableUri, success.appName)
                                     },
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Share,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Share")
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Share APK",
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
                                 }
-
-                                Spacer(modifier = Modifier.width(6.dp))
 
                                 // Action: Open Folder
                                 OutlinedButton(
@@ -323,26 +303,21 @@ fun AppListScreen(
                                         IntentUtil.openFolder(context, success.destinationFolderUri)
                                     },
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.FolderOpen,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Folder")
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Open Folder",
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
                                 }
                             }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = "💡 Tip: If this app is already installed, Android will update it. If install fails due to signature differences, uninstall existing version first.",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
                         }
                     }
                 }
@@ -355,8 +330,7 @@ fun AppListScreen(
                     onDismiss = { viewModel.onDismissBottomSheet() },
                     onExtractClick = { viewModel.extractApk(appInfo) },
                     onShareClick = { viewModel.shareApk(appInfo, context) },
-                    onAppInfoClick = { viewModel.openAppInfo(appInfo, context) },
-                    onInstallClick = { IntentUtil.installAppPackage(context, appInfo) }
+                    onAppInfoClick = { viewModel.openAppInfo(appInfo, context) }
                 )
             }
 

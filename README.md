@@ -157,7 +157,15 @@ This app declares the `android.permission.QUERY_ALL_PACKAGES` permission in `And
 
 ---
 
-## 💖 Support & Donations (Vote of Trust & Transparency)
+## 🛠️ Architecture & Troubleshooting Guide for Agents
+
+For engineers and AI agents working on this repository, see [`AGENT_TROUBLESHOOTING.md`](AGENT_TROUBLESHOOTING.md) for in-depth documentation on:
+- Sideloading compatibility and ColorOS / Android 14+ Super Guard keystore rules
+- Split APK (App Bundle) structure and `isSplitRequired` resolution
+- Termux mobile toolchain, FUSE permissions, and hermetic Gradle setup
+- Android 14+ background activity restrictions and native `PackageInstaller` sessions
+
+---
 
 APK Extractor is 100% free and open source. **100% of all contributions go solely and directly toward the development of the app** — adding new features, resolving bug reports, and funding AI token usage and API spends alone. There is zero ambiguity: your support directly fuels continuous mobile-first development and open-source improvements.
 

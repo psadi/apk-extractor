@@ -16,6 +16,8 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 data class ExtractedApkResult(
     val fileName: String,
@@ -42,13 +44,14 @@ class StorageRepository(private val context: Context) {
                 return@withContext Result.failure(Exception("Source APK file not found at ${appInfo.apkPath}"))
             }
 
-            val fileName = appInfo.sanitizedApkFileName
-            val totalBytes = sourceFile.length()
+            val fileName = appInfo.sanitizedBundleFileName
+            val isSplit = appInfo.isSplitApk
+            val mimeType = if (isSplit) "application/zip" else APK_MIME_TYPE
 
             if (customFolderUri != null) {
-                extractToSafTree(sourceFile, fileName, customFolderUri, totalBytes, onProgress)
+                extractToSafTree(appInfo, fileName, mimeType, customFolderUri, onProgress)
             } else {
-                extractToDefaultDownloads(sourceFile, fileName, totalBytes, onProgress)
+                extractToDefaultDownloads(appInfo, fileName, mimeType, onProgress)
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -56,32 +59,42 @@ class StorageRepository(private val context: Context) {
     }
 
     private fun extractToSafTree(
-        sourceFile: File,
+        appInfo: AppInfo,
         fileName: String,
+        mimeType: String,
         treeUri: Uri,
-        totalBytes: Long,
         onProgress: (Float) -> Unit
     ): Result<ExtractedApkResult> {
         val treeDoc = DocumentFile.fromTreeUri(context, treeUri)
             ?: return Result.failure(Exception("Cannot access destination folder"))
 
-        // Overwrite existing file if present
+        // Overwrite existing bundle file if present
         treeDoc.findFile(fileName)?.delete()
 
-        val createdFile = treeDoc.createFile(APK_MIME_TYPE, fileName)
+        val createdFile = treeDoc.createFile(mimeType, fileName)
             ?: return Result.failure(Exception("Failed to create file in destination folder"))
 
         val outputStream = context.contentResolver.openOutputStream(createdFile.uri)
             ?: return Result.failure(Exception("Failed to open output stream"))
 
-        FileInputStream(sourceFile).use { input ->
-            outputStream.use { output ->
-                copyStreamWithProgress(input, output, totalBytes, onProgress)
+        val sourceFile = File(appInfo.apkPath)
+        val isSplit = appInfo.isSplitApk
+
+        outputStream.use { output ->
+            if (isSplit) {
+                writeSplitApksBundle(appInfo, output, onProgress)
+            } else {
+                FileInputStream(sourceFile).use { input ->
+                    copyStreamWithProgress(input, output, sourceFile.length(), onProgress)
+                }
             }
         }
 
-        // Prepare shareable URI via cache for robust sharing compatibility
-        val shareableUri = createShareableCacheUri(sourceFile, fileName)
+        val shareableUri = if (isSplit) {
+            createShareableSplitBundleUri(appInfo, fileName)
+        } else {
+            createShareableCacheUri(sourceFile, fileName)
+        }
 
         return Result.success(
             ExtractedApkResult(
@@ -94,15 +107,18 @@ class StorageRepository(private val context: Context) {
     }
 
     private fun extractToDefaultDownloads(
-        sourceFile: File,
+        appInfo: AppInfo,
         fileName: String,
-        totalBytes: Long,
+        mimeType: String,
         onProgress: (Float) -> Unit
     ): Result<ExtractedApkResult> {
+        val sourceFile = File(appInfo.apkPath)
+        val isSplit = appInfo.isSplitApk
+
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, APK_MIME_TYPE)
+                put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                 put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$DEFAULT_FOLDER_NAME")
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
@@ -114,8 +130,12 @@ class StorageRepository(private val context: Context) {
 
             try {
                 resolver.openOutputStream(itemUri)?.use { output ->
-                    FileInputStream(sourceFile).use { input ->
-                        copyStreamWithProgress(input, output, totalBytes, onProgress)
+                    if (isSplit) {
+                        writeSplitApksBundle(appInfo, output, onProgress)
+                    } else {
+                        FileInputStream(sourceFile).use { input ->
+                            copyStreamWithProgress(input, output, sourceFile.length(), onProgress)
+                        }
                     }
                 } ?: return Result.failure(Exception("Unable to open output stream for MediaStore entry"))
 
@@ -123,7 +143,11 @@ class StorageRepository(private val context: Context) {
                 contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
                 resolver.update(itemUri, contentValues, null, null)
 
-                val shareableUri = createShareableCacheUri(sourceFile, fileName)
+                val shareableUri = if (isSplit) {
+                    createShareableSplitBundleUri(appInfo, fileName)
+                } else {
+                    createShareableCacheUri(sourceFile, fileName)
+                }
 
                 Result.success(
                     ExtractedApkResult(
@@ -143,9 +167,15 @@ class StorageRepository(private val context: Context) {
             val targetDir = File(downloadsDir, DEFAULT_FOLDER_NAME).apply { mkdirs() }
             val targetFile = File(targetDir, fileName)
 
-            FileInputStream(sourceFile).use { input ->
+            if (isSplit) {
                 FileOutputStream(targetFile).use { output ->
-                    copyStreamWithProgress(input, output, totalBytes, onProgress)
+                    writeSplitApksBundle(appInfo, output, onProgress)
+                }
+            } else {
+                FileInputStream(sourceFile).use { input ->
+                    FileOutputStream(targetFile).use { output ->
+                        copyStreamWithProgress(input, output, sourceFile.length(), onProgress)
+                    }
                 }
             }
 
@@ -156,7 +186,8 @@ class StorageRepository(private val context: Context) {
                     targetFile
                 )
             } catch (e: Exception) {
-                createShareableCacheUri(sourceFile, fileName)
+                if (isSplit) createShareableSplitBundleUri(appInfo, fileName)
+                else createShareableCacheUri(sourceFile, fileName)
             }
 
             Result.success(
@@ -176,11 +207,63 @@ class StorageRepository(private val context: Context) {
             if (!sourceFile.exists()) {
                 return@withContext Result.failure(Exception("APK file not found"))
             }
-            val uri = createShareableCacheUri(sourceFile, appInfo.sanitizedApkFileName)
+            val fileName = appInfo.sanitizedBundleFileName
+            val uri = if (appInfo.isSplitApk) {
+                createShareableSplitBundleUri(appInfo, fileName)
+            } else {
+                createShareableCacheUri(sourceFile, fileName)
+            }
             Result.success(uri)
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun writeSplitApksBundle(
+        appInfo: AppInfo,
+        outputStream: OutputStream,
+        onProgress: (Float) -> Unit
+    ) {
+        val allFiles = mutableListOf(File(appInfo.apkPath))
+        appInfo.splitApkPaths.forEach { path ->
+            val f = File(path)
+            if (f.exists()) allFiles.add(f)
+        }
+        val totalBytes = allFiles.sumOf { it.length() }
+        var bytesWritten = 0L
+
+        ZipOutputStream(outputStream).use { zipOut ->
+            val buffer = ByteArray(64 * 1024)
+            allFiles.forEach { file ->
+                val entryName = if (file.absolutePath == appInfo.apkPath) "base.apk" else file.name
+                val entry = ZipEntry(entryName)
+                zipOut.putNextEntry(entry)
+                FileInputStream(file).use { input ->
+                    var read: Int
+                    while (input.read(buffer).also { read = it } != -1) {
+                        zipOut.write(buffer, 0, read)
+                        bytesWritten += read
+                        if (totalBytes > 0) {
+                            onProgress(bytesWritten.toFloat() / totalBytes)
+                        }
+                    }
+                }
+                zipOut.closeEntry()
+            }
+        }
+    }
+
+    private fun createShareableSplitBundleUri(appInfo: AppInfo, fileName: String): Uri {
+        val shareDir = File(context.cacheDir, "shared_apks").apply { mkdirs() }
+        val targetCacheFile = File(shareDir, fileName)
+        FileOutputStream(targetCacheFile).use { output ->
+            writeSplitApksBundle(appInfo, output) {}
+        }
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            targetCacheFile
+        )
     }
 
     private fun createShareableCacheUri(sourceFile: File, fileName: String): Uri {

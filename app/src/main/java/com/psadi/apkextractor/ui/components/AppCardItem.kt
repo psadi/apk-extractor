@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,7 +56,8 @@ fun AppCardItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onInspectClick: () -> Unit = onMoreClick
 ) {
     Card(
         modifier = modifier
@@ -196,11 +198,11 @@ fun AppCardItem(
                 }
             }
 
-            // 3-dot overflow action menu
-            IconButton(onClick = onMoreClick) {
+            // Magnifying glass icon to inspect app & APK details
+            IconButton(onClick = onInspectClick) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More actions for ${appInfo.appName}",
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Inspect ${appInfo.appName}",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
