@@ -249,10 +249,9 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteExtractedApk(item: ExtractedApk) {
         viewModelScope.launch {
-            val deleted = storageRepository.deleteExtractedApk(item)
-            if (deleted) {
-                loadExtractedApps()
-            }
+            storageRepository.deleteExtractedApk(item)
+            // Always reload extracted apps so UI updates to actual storage state
+            loadExtractedApps()
         }
     }
 
@@ -265,7 +264,10 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         return apps.filter { item ->
             item.appName.contains(trimmed, ignoreCase = true) ||
                     item.packageName.contains(trimmed, ignoreCase = true) ||
-                    item.fileName.contains(trimmed, ignoreCase = true)
+                    item.fileName.contains(trimmed, ignoreCase = true) ||
+                    (item.displayBrandTag != null && item.displayBrandTag!!.contains(trimmed, ignoreCase = true)) ||
+                    com.psadi.apkextractor.util.SearchUtil.getSearchAliases(item.packageName, item.appName)
+                        .any { it.contains(trimmed, ignoreCase = true) }
         }
     }
 
@@ -285,7 +287,9 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
                 true
             } else {
                 app.appName.contains(trimmed, ignoreCase = true) ||
-                        app.packageName.contains(trimmed, ignoreCase = true)
+                        app.packageName.contains(trimmed, ignoreCase = true) ||
+                        (app.displayBrandTag != null && app.displayBrandTag!!.contains(trimmed, ignoreCase = true)) ||
+                        app.searchAliases.any { it.contains(trimmed, ignoreCase = true) }
             }
             matchesCategory && matchesQuery
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.appName })

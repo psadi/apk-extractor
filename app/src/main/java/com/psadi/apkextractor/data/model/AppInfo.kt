@@ -17,8 +17,10 @@ data class AppInfo(
     val isSystemApp: Boolean,
     val firstInstallTime: Long,
     val lastUpdateTime: Long,
-    val splitApkPaths: List<String> = emptyList()
+    val splitApkPaths: List<String> = emptyList(),
+    val searchAliases: List<String> = emptyList()
 ) {
+    val displayBrandTag: String? get() = com.psadi.apkextractor.util.SearchUtil.getBrandTag(packageName, appName)
     val isSplitApk: Boolean get() = splitApkPaths.isNotEmpty()
     val totalSplitCount: Int get() = if (isSplitApk) splitApkPaths.size + 1 else 1
 

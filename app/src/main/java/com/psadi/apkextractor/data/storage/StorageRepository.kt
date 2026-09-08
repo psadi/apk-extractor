@@ -1,10 +1,12 @@
 package com.psadi.apkextractor.data.storage
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
@@ -477,20 +479,92 @@ class StorageRepository(private val context: Context) {
     }
 
     suspend fun deleteExtractedApk(item: ExtractedApk): Boolean = withContext(Dispatchers.IO) {
-        try {
-            if (item.filePath != null) {
-                val file = File(item.filePath)
-                if (file.exists()) {
-                    if (file.isDirectory) file.deleteRecursively() else file.delete()
-                } else {
-                    false
+        var deleted = false
+
+        // 1. Try MediaStore deletion (Downloads and Files tables on Android 10+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            try {
+                val downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ?"
+                val selectionArgs = arrayOf(item.fileName)
+                resolver.query(downloadsUri, arrayOf(MediaStore.MediaColumns._ID), selection, selectionArgs, null)?.use { cursor ->
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
+                        val rowUri = ContentUris.withAppendedId(downloadsUri, id)
+                        val rows = resolver.delete(rowUri, null, null)
+                        if (rows > 0) deleted = true
+                    }
                 }
-            } else {
-                val doc = DocumentFile.fromSingleUri(context, item.fileUri)
-                doc?.delete() ?: false
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            if (!deleted && item.filePath != null) {
+                try {
+                    val filesUri = MediaStore.Files.getContentUri("external")
+                    val pathSelection = "${MediaStore.MediaColumns.DATA} = ?"
+                    val pathArgs = arrayOf(item.filePath)
+                    resolver.query(filesUri, arrayOf(MediaStore.MediaColumns._ID), pathSelection, pathArgs, null)?.use { cursor ->
+                        while (cursor.moveToNext()) {
+                            val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
+                            val rowUri = ContentUris.withAppendedId(filesUri, id)
+                            val rows = resolver.delete(rowUri, null, null)
+                            if (rows > 0) deleted = true
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        // 2. Try Storage Access Framework (SAF / DocumentsContract)
+        try {
+            if (item.fileUri.scheme == "content" && !item.fileUri.authority.orEmpty().contains("fileprovider")) {
+                if (DocumentsContract.isDocumentUri(context, item.fileUri)) {
+                    val safDeleted = DocumentsContract.deleteDocument(context.contentResolver, item.fileUri)
+                    if (safDeleted) deleted = true
+                } else {
+                    val count = context.contentResolver.delete(item.fileUri, null, null)
+                    if (count > 0) deleted = true
+                }
             }
         } catch (e: Exception) {
-            false
+            e.printStackTrace()
         }
+
+        // 3. Try DocumentFile
+        try {
+            val doc = DocumentFile.fromSingleUri(context, item.fileUri)
+            if (doc != null && doc.exists()) {
+                if (doc.delete()) deleted = true
+            }
+        } catch (_: Exception) {}
+
+        // 4. Try direct filesystem File.delete() / deleteRecursively()
+        if (item.filePath != null) {
+            try {
+                val file = File(item.filePath)
+                if (file.exists()) {
+                    val fileDeleted = if (file.isDirectory) file.deleteRecursively() else file.delete()
+                    if (fileDeleted) deleted = true
+                } else {
+                    deleted = true
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // 5. Final check: verify if the file is gone from the filesystem
+        if (item.filePath != null) {
+            val file = File(item.filePath)
+            if (!file.exists()) {
+                deleted = true
+            }
+        }
+
+        deleted
     }
 }

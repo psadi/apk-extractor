@@ -20,60 +20,83 @@ class AppPackageScanner(private val context: Context) {
         val apps = ArrayList<AppInfo>(packageInfos.size)
 
         for (pkg in packageInfos) {
-            val appInfo = pkg.applicationInfo ?: continue
+            val appInfo = pkg.applicationInfo ?: try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    packageManager.getApplicationInfo(pkg.packageName, PackageManager.ApplicationInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getApplicationInfo(pkg.packageName, 0)
+                }
+            } catch (_: Exception) {
+                null
+            } ?: continue
+
             val apkPath = appInfo.publicSourceDir ?: appInfo.sourceDir ?: continue
             val apkFile = File(apkPath)
             if (!apkFile.exists()) continue
 
-            val appName = try {
-                packageManager.getApplicationLabel(appInfo).toString()
-            } catch (e: Exception) {
-                pkg.packageName
-            }
+            apps.add(createAppInfo(pkg, appInfo, apkPath, apkFile))
+        }
 
-            val versionName = pkg.versionName ?: "1.0"
-            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        // Sort alphabetically by app name (case-insensitive)
+        apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.appName })
+    }
+
+    private fun createAppInfo(
+        pkg: PackageInfo?,
+        appInfo: ApplicationInfo,
+        apkPath: String,
+        apkFile: File
+    ): AppInfo {
+        val packageName = pkg?.packageName ?: appInfo.packageName
+        val appName = try {
+            packageManager.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            packageName
+        }
+
+        val versionName = pkg?.versionName ?: "1.0"
+        val versionCode = if (pkg != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 pkg.longVersionCode
             } else {
                 @Suppress("DEPRECATION")
                 pkg.versionCode.toLong()
             }
+        } else 0L
 
-            val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-                    (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
+                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
 
-            val minSdkVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                appInfo.minSdkVersion
-            } else {
-                26
-            }
-
-            val splitApkPaths = (appInfo.splitPublicSourceDirs ?: appInfo.splitSourceDirs)
-                ?.filter { !it.isNullOrBlank() && File(it).exists() }
-                ?: emptyList()
-
-            val totalSize = apkFile.length() + splitApkPaths.sumOf { File(it).length() }
-
-            apps.add(
-                AppInfo(
-                    appName = appName,
-                    packageName = pkg.packageName,
-                    versionName = versionName,
-                    versionCode = versionCode,
-                    minSdkVersion = minSdkVersion,
-                    targetSdkVersion = appInfo.targetSdkVersion,
-                    apkPath = apkPath,
-                    apkSize = totalSize,
-                    isSystemApp = isSystemApp,
-                    firstInstallTime = pkg.firstInstallTime,
-                    lastUpdateTime = pkg.lastUpdateTime,
-                    splitApkPaths = splitApkPaths
-                )
-            )
+        val minSdkVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            appInfo.minSdkVersion
+        } else {
+            26
         }
 
-        // Sort alphabetically by app name (case-insensitive)
-        apps.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.appName })
+        val splitApkPaths = (appInfo.splitPublicSourceDirs ?: appInfo.splitSourceDirs)
+            ?.filter { !it.isNullOrBlank() && File(it).exists() }
+            ?: emptyList()
+
+        val totalSize = apkFile.length() + splitApkPaths.sumOf { File(it).length() }
+
+        val searchAliases = com.psadi.apkextractor.util.SearchUtil.getSearchAliases(packageName, appName)
+
+        return AppInfo(
+            appName = appName,
+            packageName = packageName,
+            versionName = versionName,
+            versionCode = versionCode,
+            minSdkVersion = minSdkVersion,
+            targetSdkVersion = appInfo.targetSdkVersion,
+            apkPath = apkPath,
+            apkSize = totalSize,
+            isSystemApp = isSystemApp,
+            firstInstallTime = pkg?.firstInstallTime ?: 0L,
+            lastUpdateTime = pkg?.lastUpdateTime ?: 0L,
+            splitApkPaths = splitApkPaths,
+            searchAliases = searchAliases
+        )
     }
 
     fun getAppIcon(packageName: String): Drawable? {

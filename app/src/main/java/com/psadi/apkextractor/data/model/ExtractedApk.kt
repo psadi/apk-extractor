@@ -19,6 +19,8 @@ data class ExtractedApk(
     val isSplitBundle: Boolean,
     val isDirectory: Boolean = false
 ) {
+    val displayBrandTag: String? get() = com.psadi.apkextractor.util.SearchUtil.getBrandTag(packageName, appName)
+
     val formattedSize: String
         get() {
             if (fileSize <= 0) return "0 B"
