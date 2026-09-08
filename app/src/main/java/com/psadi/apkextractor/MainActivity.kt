@@ -30,6 +30,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val packageChangeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+            viewModel.loadApps(showLoading = false)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -44,5 +50,32 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh apps silently on resume (e.g. after installing or uninstalling an app)
+        viewModel.loadApps(showLoading = false)
+
+        val filter = android.content.IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addDataScheme("package")
+        }
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(packageChangeReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_EXPORTED)
+            } else {
+                registerReceiver(packageChangeReceiver, filter)
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            unregisterReceiver(packageChangeReceiver)
+        } catch (_: Exception) {}
     }
 }

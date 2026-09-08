@@ -4,9 +4,9 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/psadi/apk-extractor/build-and-release.yml?branch=main&label=Build&logo=github)](https://github.com/psadi/apk-extractor/actions)
 [![Release](https://img.shields.io/github/v/release/psadi/apk-extractor?label=Release&logo=android&color=success)](https://github.com/psadi/apk-extractor/releases/latest)
 [![AI Model](https://img.shields.io/badge/AI_Model-Gemini_Flash-8E75B2?logo=googlegemini&logoColor=white)](USAGE_QUOTA.md)
-[![Input Tokens](https://img.shields.io/badge/Input_Tokens-94.9M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
-[![Output Tokens](https://img.shields.io/badge/Output_Tokens-308K-blueviolet)](USAGE_QUOTA.md)
-[![AI Spend](https://img.shields.io/badge/AI_Spend-$12.11_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
+[![Input Tokens](https://img.shields.io/badge/Input_Tokens-114.0M-informational?logo=google&logoColor=white)](USAGE_QUOTA.md)
+[![Output Tokens](https://img.shields.io/badge/Output_Tokens-385K-blueviolet)](USAGE_QUOTA.md)
+[![AI Spend](https://img.shields.io/badge/AI_Spend-$14.61_USD-brightgreen?logo=googlecloud&logoColor=white)](USAGE_QUOTA.md)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/psadi)
 [![PayPal](https://img.shields.io/badge/Donate-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/psadithya)
 
@@ -17,12 +17,15 @@ A modern, production-grade native Android application for exploring installed ap
 ## Features
 
 - **Dynamic Material You Theming:** Native Monet dynamic color theming on Android 12+ (API 31–35) with fallback to an elegant Material 3 indigo/purple palette on earlier releases.
-- **Dual Category Filtering:** Instant toggling between User Installed apps and System Apps with real-time app counts.
+- **Triple Category Filtering:** Instant toggling between User Installed apps, System Apps, and Extracted Backups with real-time counters.
+- **Real-Time Lifecycle & Broadcast Auto-Refresh:** Automatically refreshes the app list on foreground (`onResume`) and on system package installation/uninstallation broadcasts (`ACTION_PACKAGE_ADDED/REMOVED/REPLACED`).
+- **Extracted Backups Explorer:** Dedicated tab to view, search, install, share, or delete previously extracted `.apk` and `.apks` split backups directly from device storage.
+- **Split APK & Bundle Support:** Automatically detects split APKs, bundles them into `.apks` zip archives, and installs them seamlessly via Android's `PackageInstaller.Session`.
 - **Real-Time Search & Fast-Scroller:**
-  - Responsive search bar filtering by app label and package name.
+  - Responsive search bar filtering by app label and package name across installed apps and extracted backup archives.
   - Interactive vertical A–Z sidebar with touch/drag tracking, haptic feedback, and floating letter indicator.
 - **Instant APK Extraction:**
-  - One-tap APK extraction from `ApplicationInfo.publicSourceDir` directly to storage with smooth progress feedback.
+  - One-tap APK extraction directly to storage with smooth progress feedback.
   - Default extraction path: `Downloads/APK_Extractor/` via MediaStore API (no dangerous storage permissions required).
   - Custom directory picker via Storage Access Framework (`Intent.ACTION_OPEN_DOCUMENT_TREE`) with persistable URI permissions.
 - **Action Bottom Sheet:**
@@ -34,7 +37,7 @@ A modern, production-grade native Android application for exploring installed ap
 - **Settings, Support & About:**
   - Configurable storage destination (SAF directory picker or MediaStore).
   - In-app Support / Donate button to fund ongoing development.
-  - Full app version info (v1.0.0 Build 1), open source license, and GitHub repository links.
+  - Full app version info, open source license, and GitHub repository links.
 
 ---
 
@@ -56,15 +59,15 @@ This entire application—architecture planning, Jetpack Compose UI, Material 3 
 
 | Metric | Highlights |
 | :--- | :--- |
-| **Cumulative AI Spend** | **$12.11 USD** |
-| **Total Tokens Processed** | **95,237,083** (~95.2M tokens) |
-| **Input / Output Breakdown** | 94.9M prompt tokens (4.28M cached) • 308K output tokens (160K thinking) |
-| **Generations / Steps** | **787** model invocations across 5 production releases |
+| **Cumulative AI Spend** | **$14.61 USD** |
+| **Total Tokens Processed** | **114,405,857** (~114.4M tokens) |
+| **Input / Output Breakdown** | 114.0M prompt tokens (6.17M cached) • 385K output tokens (202K thinking) |
+| **Generations / Steps** | **922** model invocations across 6 production releases |
 | **Environment** | Termux (`aarch64` Linux), hermetic JDK 17 & Gradle 8.7 via [mise](https://mise.jdx.dev), native `aapt2` |
 | **Complete Accounting** | 👉 **[View Complete Usage Quota & Cost Breakdown (USAGE_QUOTA.md)](USAGE_QUOTA.md)** |
 
 > [!TIP]
-> For complete financial transparency and a release-by-release breakdown of tokens, thinking overhead, and tiered pricing across every release (v1.0.0 through v1.1.3), see [`USAGE_QUOTA.md`](USAGE_QUOTA.md).
+> For complete financial transparency and a release-by-release breakdown of tokens, thinking overhead, and tiered pricing across every release (v1.0.0 through v1.2.0), see [`USAGE_QUOTA.md`](USAGE_QUOTA.md).
 
 ## Getting Started & Build Instructions
 

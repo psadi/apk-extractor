@@ -20,6 +20,7 @@ fun AppFilterTabs(
     selectedCategory: AppCategory,
     userCount: Int,
     systemCount: Int,
+    extractedCount: Int,
     onCategorySelected: (AppCategory) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -31,18 +32,39 @@ fun AppFilterTabs(
         SegmentedButton(
             selected = selectedCategory == AppCategory.USER,
             onClick = { onCategorySelected(AppCategory.USER) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
             label = {
-                Text(text = "User Installed ($userCount)")
+                Text(
+                    text = "Installed ($userCount)",
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
             }
         )
 
         SegmentedButton(
             selected = selectedCategory == AppCategory.SYSTEM,
             onClick = { onCategorySelected(AppCategory.SYSTEM) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
             label = {
-                Text(text = "System Apps ($systemCount)")
+                Text(
+                    text = "System ($systemCount)",
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        )
+
+        SegmentedButton(
+            selected = selectedCategory == AppCategory.EXTRACTED,
+            onClick = { onCategorySelected(AppCategory.EXTRACTED) },
+            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+            label = {
+                Text(
+                    text = "Extracted ($extractedCount)",
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
             }
         )
     }

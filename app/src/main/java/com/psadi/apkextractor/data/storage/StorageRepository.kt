@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import com.psadi.apkextractor.data.model.AppInfo
+import com.psadi.apkextractor.data.model.ExtractedApk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -303,5 +304,193 @@ class StorageRepository(private val context: Context) {
         }
         output.flush()
         onProgress(1.0f)
+    }
+
+    suspend fun getExtractedApks(customFolderUri: Uri?): List<ExtractedApk> = withContext(Dispatchers.IO) {
+        val result = mutableListOf<ExtractedApk>()
+        try {
+            // 1. Scan default Downloads/APK_Extractor
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val defaultDir = File(downloadsDir, DEFAULT_FOLDER_NAME)
+            if (defaultDir.exists() && defaultDir.isDirectory) {
+                scanDirectoryForApks(defaultDir, result)
+            }
+
+            // 2. Scan custom SAF folder if configured
+            if (customFolderUri != null) {
+                val treeDoc = DocumentFile.fromTreeUri(context, customFolderUri)
+                if (treeDoc != null && treeDoc.isDirectory) {
+                    scanSafFolderForApks(treeDoc, result)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        result.distinctBy { it.filePath ?: it.fileUri.toString() }
+            .sortedByDescending { it.lastModified }
+    }
+
+    private fun scanDirectoryForApks(dir: File, result: MutableList<ExtractedApk>) {
+        val files = dir.listFiles() ?: return
+        for (file in files) {
+            val name = file.name
+            // Skip hidden or trashed files
+            if (name.startsWith(".")) continue
+
+            if (file.isDirectory) {
+                if (name.endsWith(".apks") || name.endsWith(".bundle")) {
+                    val baseApk = File(file, "base.apk")
+                    var appName = file.nameWithoutExtension.replace(Regex("_v.*"), "").replace("_", " ")
+                    var packageName = ""
+                    var versionName = "1.0"
+                    var versionCode = 0L
+
+                    if (baseApk.exists()) {
+                        val pi = context.packageManager.getPackageArchiveInfo(baseApk.absolutePath, 0)
+                        if (pi != null) {
+                            packageName = pi.packageName ?: ""
+                            versionName = pi.versionName ?: "1.0"
+                            versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                pi.longVersionCode
+                            } else {
+                                @Suppress("DEPRECATION") pi.versionCode.toLong()
+                            }
+                            val appInfo = pi.applicationInfo
+                            if (appInfo != null) {
+                                appInfo.sourceDir = baseApk.absolutePath
+                                appInfo.publicSourceDir = baseApk.absolutePath
+                                try {
+                                    val label = appInfo.loadLabel(context.packageManager).toString()
+                                    if (label.isNotBlank()) appName = label
+                                } catch (_: Exception) {}
+                            }
+                        }
+                    }
+
+                    val totalSize = file.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                    val fileUri = Uri.fromFile(file)
+                    result.add(
+                        ExtractedApk(
+                            fileName = name,
+                            fileUri = fileUri,
+                            filePath = file.absolutePath,
+                            fileSize = totalSize,
+                            lastModified = file.lastModified(),
+                            appName = appName,
+                            packageName = packageName,
+                            versionName = versionName,
+                            versionCode = versionCode,
+                            isSplitBundle = true,
+                            isDirectory = true
+                        )
+                    )
+                }
+            } else if (file.isFile) {
+                val isApksZip = name.endsWith(".apks") || name.endsWith(".apks.zip")
+                val isApk = name.endsWith(".apk")
+
+                if (isApk || isApksZip) {
+                    var appName = file.nameWithoutExtension.replace(Regex("_v.*"), "").replace("_", " ")
+                    var packageName = ""
+                    var versionName = "1.0"
+                    var versionCode = 0L
+
+                    if (isApk) {
+                        val pi = context.packageManager.getPackageArchiveInfo(file.absolutePath, 0)
+                        if (pi != null) {
+                            packageName = pi.packageName ?: ""
+                            versionName = pi.versionName ?: "1.0"
+                            versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                pi.longVersionCode
+                            } else {
+                                @Suppress("DEPRECATION") pi.versionCode.toLong()
+                            }
+                            val appInfo = pi.applicationInfo
+                            if (appInfo != null) {
+                                appInfo.sourceDir = file.absolutePath
+                                appInfo.publicSourceDir = file.absolutePath
+                                try {
+                                    val label = appInfo.loadLabel(context.packageManager).toString()
+                                    if (label.isNotBlank()) appName = label
+                                } catch (_: Exception) {}
+                            }
+                        }
+                    }
+
+                    val fileUri = try {
+                        FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                    } catch (e: Exception) {
+                        Uri.fromFile(file)
+                    }
+
+                    result.add(
+                        ExtractedApk(
+                            fileName = name,
+                            fileUri = fileUri,
+                            filePath = file.absolutePath,
+                            fileSize = file.length(),
+                            lastModified = file.lastModified(),
+                            appName = appName,
+                            packageName = packageName,
+                            versionName = versionName,
+                            versionCode = versionCode,
+                            isSplitBundle = isApksZip,
+                            isDirectory = false
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private fun scanSafFolderForApks(treeDoc: DocumentFile, result: MutableList<ExtractedApk>) {
+        val files = treeDoc.listFiles()
+        for (doc in files) {
+            val name = doc.name ?: continue
+            if (name.startsWith(".")) continue
+            val isApk = name.endsWith(".apk")
+            val isApks = name.endsWith(".apks") || name.endsWith(".apks.zip")
+            if (isApk || isApks) {
+                var appName = name.substringBeforeLast(".").replace(Regex("_v.*"), "").replace("_", " ")
+                result.add(
+                    ExtractedApk(
+                        fileName = name,
+                        fileUri = doc.uri,
+                        filePath = null,
+                        fileSize = doc.length(),
+                        lastModified = doc.lastModified(),
+                        appName = appName,
+                        packageName = "",
+                        versionName = "1.0",
+                        versionCode = 0L,
+                        isSplitBundle = isApks,
+                        isDirectory = doc.isDirectory
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun deleteExtractedApk(item: ExtractedApk): Boolean = withContext(Dispatchers.IO) {
+        try {
+            if (item.filePath != null) {
+                val file = File(item.filePath)
+                if (file.exists()) {
+                    if (file.isDirectory) file.deleteRecursively() else file.delete()
+                } else {
+                    false
+                }
+            } else {
+                val doc = DocumentFile.fromSingleUri(context, item.fileUri)
+                doc?.delete() ?: false
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 }

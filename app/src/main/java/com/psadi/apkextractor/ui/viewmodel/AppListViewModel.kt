@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.psadi.apkextractor.data.model.AppCategory
 import com.psadi.apkextractor.data.model.AppInfo
 import com.psadi.apkextractor.data.model.ExtractionState
+import com.psadi.apkextractor.data.model.ExtractedApk
 import com.psadi.apkextractor.data.`package`.AppPackageScanner
 import com.psadi.apkextractor.data.preferences.PreferencesManager
 import com.psadi.apkextractor.data.storage.StorageRepository
@@ -44,23 +45,47 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun loadApps() {
+    fun loadApps(showLoading: Boolean = true) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            if (showLoading) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
+            val customUri = _uiState.value.customFolderUriString?.let { Uri.parse(it) }
             val apps = packageScanner.getInstalledApps()
+            val extracted = storageRepository.getExtractedApks(customUri)
             val userCount = apps.count { !it.isSystemApp }
             val systemCount = apps.count { it.isSystemApp }
+            val extractedCount = extracted.size
 
             _uiState.update { state ->
                 val filtered = filterAndSortApps(apps, state.searchQuery, state.selectedCategory)
+                val filteredExtracted = filterExtractedApps(extracted, state.searchQuery)
                 val indexMap = computeAlphabetIndexMap(filtered)
                 state.copy(
                     isLoading = false,
                     allApps = apps,
                     filteredApps = filtered,
+                    allExtractedApps = extracted,
+                    filteredExtractedApps = filteredExtracted,
                     userAppCount = userCount,
                     systemAppCount = systemCount,
+                    extractedAppCount = extractedCount,
                     alphabetIndexMap = indexMap
+                )
+            }
+        }
+    }
+
+    fun loadExtractedApps() {
+        viewModelScope.launch {
+            val customUri = _uiState.value.customFolderUriString?.let { Uri.parse(it) }
+            val extracted = storageRepository.getExtractedApks(customUri)
+            _uiState.update { state ->
+                val filteredExtracted = filterExtractedApps(extracted, state.searchQuery)
+                state.copy(
+                    allExtractedApps = extracted,
+                    filteredExtractedApps = filteredExtracted,
+                    extractedAppCount = extracted.size
                 )
             }
         }
@@ -69,10 +94,12 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
     fun onSearchQueryChanged(query: String) {
         _uiState.update { state ->
             val filtered = filterAndSortApps(state.allApps, query, state.selectedCategory)
+            val filteredExtracted = filterExtractedApps(state.allExtractedApps, query)
             val indexMap = computeAlphabetIndexMap(filtered)
             state.copy(
                 searchQuery = query,
                 filteredApps = filtered,
+                filteredExtractedApps = filteredExtracted,
                 alphabetIndexMap = indexMap
             )
         }
@@ -84,10 +111,12 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         }
         _uiState.update { state ->
             val filtered = filterAndSortApps(state.allApps, state.searchQuery, category)
+            val filteredExtracted = filterExtractedApps(state.allExtractedApps, state.searchQuery)
             val indexMap = computeAlphabetIndexMap(filtered)
             state.copy(
                 selectedCategory = category,
                 filteredApps = filtered,
+                filteredExtractedApps = filteredExtracted,
                 alphabetIndexMap = indexMap
             )
         }
@@ -149,6 +178,7 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
                             )
                         )
                     }
+                    loadExtractedApps()
                 },
                 onFailure = { error ->
                     _uiState.update {
@@ -209,6 +239,36 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(activeExtractionState = ExtractionState.Idle) }
     }
 
+    fun installExtractedApk(context: Context, item: ExtractedApk) {
+        IntentUtil.installExtractedApk(context, item)
+    }
+
+    fun shareExtractedApk(context: Context, item: ExtractedApk) {
+        IntentUtil.shareApk(context, item.fileUri, item.appName)
+    }
+
+    fun deleteExtractedApk(item: ExtractedApk) {
+        viewModelScope.launch {
+            val deleted = storageRepository.deleteExtractedApk(item)
+            if (deleted) {
+                loadExtractedApps()
+            }
+        }
+    }
+
+    private fun filterExtractedApps(
+        apps: List<ExtractedApk>,
+        query: String
+    ): List<ExtractedApk> {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) return apps
+        return apps.filter { item ->
+            item.appName.contains(trimmed, ignoreCase = true) ||
+                    item.packageName.contains(trimmed, ignoreCase = true) ||
+                    item.fileName.contains(trimmed, ignoreCase = true)
+        }
+    }
+
     private fun filterAndSortApps(
         apps: List<AppInfo>,
         query: String,
@@ -219,6 +279,7 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             val matchesCategory = when (category) {
                 AppCategory.USER -> !app.isSystemApp
                 AppCategory.SYSTEM -> app.isSystemApp
+                AppCategory.EXTRACTED -> false
             }
             val matchesQuery = if (trimmed.isEmpty()) {
                 true

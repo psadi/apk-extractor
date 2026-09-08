@@ -59,11 +59,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.psadi.apkextractor.data.model.AppCategory
 import com.psadi.apkextractor.data.model.ExtractionState
 import com.psadi.apkextractor.ui.components.AlphabeticalFastScroller
 import com.psadi.apkextractor.ui.components.AppCardItem
 import com.psadi.apkextractor.ui.components.AppDetailBottomSheet
 import com.psadi.apkextractor.ui.components.AppFilterTabs
+import com.psadi.apkextractor.ui.components.ExtractedApkCardItem
 import com.psadi.apkextractor.ui.components.PersistentSearchBar
 import com.psadi.apkextractor.ui.components.SettingsDialog
 import com.psadi.apkextractor.ui.viewmodel.AppListViewModel
@@ -127,6 +129,7 @@ fun AppListScreen(
                     selectedCategory = uiState.selectedCategory,
                     userCount = uiState.userAppCount,
                     systemCount = uiState.systemAppCount,
+                    extractedCount = uiState.extractedAppCount,
                     onCategorySelected = { viewModel.onCategorySelected(it) }
                 )
 
@@ -152,6 +155,50 @@ fun AppListScreen(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                        }
+                    } else if (uiState.selectedCategory == AppCategory.EXTRACTED) {
+                        if (uiState.filteredExtractedApps.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (uiState.searchQuery.isNotEmpty()) {
+                                        "No extracted backups match \"${uiState.searchQuery}\""
+                                    } else {
+                                        "No extracted APK backups found\n\nExtract any app from the Installed or System tabs to view, share, or reinstall backups here."
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(32.dp)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(
+                                    items = uiState.filteredExtractedApps,
+                                    key = { it.filePath ?: it.fileUri.toString() }
+                                ) { extractedItem ->
+                                    ExtractedApkCardItem(
+                                        item = extractedItem,
+                                        onInstallClick = {
+                                            viewModel.installExtractedApk(context, extractedItem)
+                                        },
+                                        onShareClick = {
+                                            viewModel.shareExtractedApk(context, extractedItem)
+                                        },
+                                        onDeleteClick = {
+                                            viewModel.deleteExtractedApk(extractedItem)
+                                        }
+                                    )
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(80.dp))
+                                }
                             }
                         }
                     } else if (uiState.filteredApps.isEmpty()) {
