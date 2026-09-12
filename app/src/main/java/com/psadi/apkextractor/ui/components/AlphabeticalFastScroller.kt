@@ -93,7 +93,7 @@ fun AlphabeticalFastScroller(
                 .align(Alignment.TopEnd)
                 .offset {
                     IntOffset(
-                        x = (-56).dp.roundToPx(),
+                        x = (-64).dp.roundToPx(),
                         y = (thumbOffsetY - 28.dp.toPx()).roundToInt().coerceAtLeast(0)
                     )
                 }
@@ -162,12 +162,15 @@ fun AlphabeticalFastScroller(
         ) {
             alphabet.forEach { char ->
                 val hasItems = alphabetMap.containsKey(char)
+                val isActive = char == activeLetter
                 Text(
                     text = char.toString(),
-                    fontSize = 9.sp,
-                    fontWeight = if (hasItems) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (hasItems) {
+                    fontSize = if (isActive) 11.sp else 9.sp,
+                    fontWeight = if (isActive) FontWeight.ExtraBold else if (hasItems) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isActive) {
                         MaterialTheme.colorScheme.primary
+                    } else if (hasItems) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                     },

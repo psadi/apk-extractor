@@ -61,6 +61,32 @@ class StorageRepository(private val context: Context) {
         }
     }
 
+    suspend fun checkApkAlreadyExists(
+        appInfo: AppInfo,
+        customFolderUri: Uri?
+    ): Boolean = withContext(Dispatchers.IO) {
+        val fileName = appInfo.sanitizedBundleFileName
+        if (customFolderUri != null) {
+            val treeDoc = DocumentFile.fromTreeUri(context, customFolderUri)
+            treeDoc?.findFile(fileName) != null
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val resolver = context.contentResolver
+                val selection = "${MediaStore.MediaColumns.DISPLAY_NAME} = ? AND ${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?"
+                val selectionArgs = arrayOf(fileName, "%${DEFAULT_FOLDER_NAME}%")
+                resolver.query(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    arrayOf(MediaStore.MediaColumns._ID),
+                    selection, selectionArgs, null
+                )?.use { cursor -> cursor.count > 0 } ?: false
+            } else {
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val targetFile = File(File(downloadsDir, DEFAULT_FOLDER_NAME), fileName)
+                targetFile.exists()
+            }
+        }
+    }
+
     private fun extractToSafTree(
         appInfo: AppInfo,
         fileName: String,

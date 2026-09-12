@@ -24,4 +24,10 @@ sealed interface ExtractionState {
         val appName: String,
         val message: String
     ) : ExtractionState
+
+    data class AlreadyExists(
+        val appName: String,
+        val fileName: String,
+        val appInfo: AppInfo
+    ) : ExtractionState
 }

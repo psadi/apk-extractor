@@ -84,15 +84,30 @@ fun AppListScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // React to extraction errors
+    // React to extraction errors and duplicate detection
     LaunchedEffect(uiState.activeExtractionState) {
         val state = uiState.activeExtractionState
-        if (state is ExtractionState.Error) {
-            snackbarHostState.showSnackbar(
-                message = "${state.appName}: ${state.message}",
-                duration = SnackbarDuration.Long
-            )
-            viewModel.clearActiveExtraction()
+        when (state) {
+            is ExtractionState.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = "${state.appName}: ${state.message}",
+                    duration = SnackbarDuration.Long
+                )
+                viewModel.clearActiveExtraction()
+            }
+            is ExtractionState.AlreadyExists -> {
+                val result = snackbarHostState.showSnackbar(
+                    message = "\"${state.appName}\" already extracted as ${state.fileName}",
+                    actionLabel = "Re-extract",
+                    duration = SnackbarDuration.Long,
+                    withDismissAction = true
+                )
+                viewModel.clearActiveExtraction()
+                if (result == SnackbarResult.ActionPerformed) {
+                    viewModel.extractApkForce(state.appInfo)
+                }
+            }
+            else -> {}
         }
     }
 

@@ -88,9 +88,9 @@ object SearchUtil {
             return true
         }
 
-        // 3. Match against individual package name segments (prevents cross-segment collisions like android.settings matching "ds")
+        // 3. Match against individual package name segments (prevents cross-segment collisions)
         val pkgSegments = app.packageName.lowercase().split('.').filter { it.isNotBlank() }
-        if (pkgSegments.any { it.contains(strippedQuery) }) {
+        if (pkgSegments.any { it.contains(lowerQuery) }) {
             return true
         }
 
@@ -149,7 +149,7 @@ object SearchUtil {
 
         // 3. Match against package name segments
         val pkgSegments = item.packageName.lowercase().split('.').filter { it.isNotBlank() }
-        if (pkgSegments.any { it.contains(strippedQuery) }) {
+        if (pkgSegments.any { it.contains(lowerQuery) }) {
             return true
         }
 

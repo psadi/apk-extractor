@@ -22,10 +22,13 @@ class AppPackageScanner(private val context: Context) {
         for (pkg in packageInfos) {
             val appInfo = pkg.applicationInfo ?: try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    packageManager.getApplicationInfo(pkg.packageName, PackageManager.ApplicationInfoFlags.of(0))
+                    packageManager.getApplicationInfo(
+                        pkg.packageName,
+                        PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong())
+                    )
                 } else {
                     @Suppress("DEPRECATION")
-                    packageManager.getApplicationInfo(pkg.packageName, 0)
+                    packageManager.getApplicationInfo(pkg.packageName, PackageManager.GET_META_DATA)
                 }
             } catch (_: Exception) {
                 null
@@ -111,15 +114,29 @@ class AppPackageScanner(private val context: Context) {
     }
 
     private fun getInstalledPackageInfos(): List<PackageInfo> {
+        // GET_META_DATA ensures applicationInfo is populated inline on all API levels.
+        // Without it, packageInfo.applicationInfo is null on Android 13+ (API 33+),
+        // causing apps to silently fail the fallback getApplicationInfo() call and be dropped.
+        val flags = PackageManager.GET_META_DATA.toLong()
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                packageManager.getInstalledPackages(PackageManager.PackageInfoFlags.of(0))
+                packageManager.getInstalledPackages(PackageManager.PackageInfoFlags.of(flags))
             } else {
                 @Suppress("DEPRECATION")
-                packageManager.getInstalledPackages(0)
+                packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
             }
         } catch (e: Exception) {
-            emptyList()
+            // Fallback: try without flags if privileged call fails (e.g. multi-user edge cases)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    packageManager.getInstalledPackages(PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getInstalledPackages(0)
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
         }
     }
 }

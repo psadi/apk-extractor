@@ -170,62 +170,86 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
 
     fun extractApk(appInfo: AppInfo) {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    activeExtractionState = ExtractionState.Extracting(
-                        packageName = appInfo.packageName,
-                        appName = appInfo.appName,
-                        progress = 0f
-                    )
-                )
-            }
-
             val customUri = _uiState.value.customFolderUriString?.let { Uri.parse(it) }
-
-            val result = storageRepository.extractApk(
-                appInfo = appInfo,
-                customFolderUri = customUri,
-                onProgress = { progress ->
-                    _uiState.update { state ->
-                        if (state.activeExtractionState is ExtractionState.Extracting) {
-                            state.copy(
-                                activeExtractionState = state.activeExtractionState.copy(progress = progress)
-                            )
-                        } else {
-                            state
-                        }
-                    }
-                }
-            )
-
-            result.fold(
-                onSuccess = { extracted ->
-                    _uiState.update {
-                        it.copy(
-                            activeExtractionState = ExtractionState.Success(
-                                appName = appInfo.appName,
-                                fileName = extracted.fileName,
-                                destinationPath = extracted.destinationDisplayName,
-                                shareableUri = extracted.shareableUri,
-                                destinationFolderUri = extracted.folderUri,
-                                appInfo = appInfo
-                            )
+            val exists = storageRepository.checkApkAlreadyExists(appInfo, customUri)
+            if (exists) {
+                _uiState.update {
+                    it.copy(
+                        activeExtractionState = ExtractionState.AlreadyExists(
+                            appName = appInfo.appName,
+                            fileName = appInfo.sanitizedBundleFileName,
+                            appInfo = appInfo
                         )
-                    }
-                    loadExtractedApps()
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            activeExtractionState = ExtractionState.Error(
-                                appName = appInfo.appName,
-                                message = error.localizedMessage ?: "Unknown extraction error"
-                            )
-                        )
-                    }
+                    )
                 }
+                return@launch
+            }
+            doExtractApk(appInfo)
+        }
+    }
+
+    fun extractApkForce(appInfo: AppInfo) {
+        viewModelScope.launch {
+            doExtractApk(appInfo)
+        }
+    }
+
+    private suspend fun doExtractApk(appInfo: AppInfo) {
+        _uiState.update {
+            it.copy(
+                activeExtractionState = ExtractionState.Extracting(
+                    packageName = appInfo.packageName,
+                    appName = appInfo.appName,
+                    progress = 0f
+                )
             )
         }
+
+        val customUri = _uiState.value.customFolderUriString?.let { Uri.parse(it) }
+
+        val result = storageRepository.extractApk(
+            appInfo = appInfo,
+            customFolderUri = customUri,
+            onProgress = { progress ->
+                _uiState.update { state ->
+                    if (state.activeExtractionState is ExtractionState.Extracting) {
+                        state.copy(
+                            activeExtractionState = state.activeExtractionState.copy(progress = progress)
+                        )
+                    } else {
+                        state
+                    }
+                }
+            }
+        )
+
+        result.fold(
+            onSuccess = { extracted ->
+                _uiState.update {
+                    it.copy(
+                        activeExtractionState = ExtractionState.Success(
+                            appName = appInfo.appName,
+                            fileName = extracted.fileName,
+                            destinationPath = extracted.destinationDisplayName,
+                            shareableUri = extracted.shareableUri,
+                            destinationFolderUri = extracted.folderUri,
+                            appInfo = appInfo
+                        )
+                    )
+                }
+                loadExtractedApps()
+            },
+            onFailure = { error ->
+                _uiState.update {
+                    it.copy(
+                        activeExtractionState = ExtractionState.Error(
+                            appName = appInfo.appName,
+                            message = error.localizedMessage ?: "Unknown extraction error"
+                        )
+                    )
+                }
+            }
+        )
     }
 
     fun shareApk(appInfo: AppInfo, context: Context) {
