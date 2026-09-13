@@ -6,8 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,9 +40,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import com.psadi.apkextractor.util.letterIndexForOffset
+import com.psadi.apkextractor.util.resolveTargetListIndex
 import kotlin.math.roundToInt
 
+/**
+ * Vertical A-Z fast scroller with a floating letter-preview bubble.
+ *
+ * While the user presses or drags along the track the active letter is
+ * highlighted, a zoomed-in bubble follows the touch position, and
+ * [onLetterSelected] is invoked with the target list index in real time.
+ */
 @Composable
 fun AlphabeticalFastScroller(
     alphabetMap: Map<Char, Int>,
@@ -51,40 +58,36 @@ fun AlphabeticalFastScroller(
     modifier: Modifier = Modifier
 ) {
     val alphabet = remember { listOf('#') + ('A'..'Z').toList() }
+    val haptic = LocalHapticFeedback.current
+    val bubbleSize = 60.dp
+
     var isDragging by remember { mutableStateOf(false) }
     var activeLetter by remember { mutableStateOf<Char?>(null) }
     var thumbOffsetY by remember { mutableStateOf(0f) }
-    var totalHeight by remember { mutableStateOf(1f) }
-
-    val haptic = LocalHapticFeedback.current
-    val coroutineScope = rememberCoroutineScope()
+    var trackTop by remember { mutableStateOf(0f) }
+    var trackHeight by remember { mutableStateOf(1f) }
+    var containerHeight by remember { mutableStateOf(1f) }
 
     fun handleSelection(y: Float) {
-        val clampedY = y.coerceIn(0f, totalHeight)
+        val clampedY = y.coerceIn(0f, trackHeight)
         thumbOffsetY = clampedY
-        val index = ((clampedY / totalHeight) * alphabet.size).toInt().coerceIn(0, alphabet.size - 1)
+        val index = letterIndexForOffset(clampedY, trackHeight, alphabet.size)
         val letter = alphabet[index]
         if (letter != activeLetter) {
             activeLetter = letter
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            val targetListIndex = alphabetMap[letter] ?: run {
-                // Find nearest fallback letter in map
-                alphabet.subList(index, alphabet.size).firstNotNullOfOrNull { alphabetMap[it] }
-                    ?: alphabetMap.values.lastOrNull()
-            }
-            if (targetListIndex != null) {
-                onLetterSelected(targetListIndex)
-            }
+            resolveTargetListIndex(alphabet, index, alphabetMap)?.let(onLetterSelected)
         }
     }
 
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .width(48.dp),
+            .width(48.dp)
+            .onGloballyPositioned { containerHeight = it.size.height.toFloat() },
         contentAlignment = Alignment.CenterEnd
     ) {
-        // Floating Bubble Indicator on drag
+        // Floating, zoomed-in letter preview bubble.
         AnimatedVisibility(
             visible = isDragging && activeLetter != null,
             enter = fadeIn() + scaleIn(),
@@ -92,16 +95,20 @@ fun AlphabeticalFastScroller(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset {
+                    // thumbOffsetY is relative to the track; translate it into
+                    // the parent's coordinate space and centre the bubble on it.
+                    val rawY = trackTop + thumbOffsetY - bubbleSize.toPx() / 2f
+                    val maxY = (containerHeight - bubbleSize.toPx()).coerceAtLeast(0f)
                     IntOffset(
-                        x = (-64).dp.roundToPx(),
-                        y = (thumbOffsetY - 28.dp.toPx()).roundToInt().coerceAtLeast(0)
+                        x = -(bubbleSize.toPx() + 8.dp.toPx()).roundToInt(),
+                        y = rawY.coerceIn(0f, maxY).roundToInt()
                     )
                 }
         ) {
             Surface(
                 modifier = Modifier
-                    .size(56.dp)
-                    .shadow(8.dp, CircleShape),
+                    .size(bubbleSize)
+                    .shadow(10.dp, CircleShape),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -109,14 +116,14 @@ fun AlphabeticalFastScroller(
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = activeLetter?.toString() ?: "",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
 
-        // Vertical A-Z Track
+        // Vertical A-Z track.
         Column(
             modifier = Modifier
                 .padding(vertical = 12.dp, horizontal = 4.dp)
@@ -124,38 +131,28 @@ fun AlphabeticalFastScroller(
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
                 .padding(vertical = 4.dp, horizontal = 2.dp)
                 .onGloballyPositioned { coordinates ->
-                    totalHeight = coordinates.size.height.toFloat()
+                    trackTop = coordinates.positionInParent().y
+                    trackHeight = coordinates.size.height.toFloat()
                 }
                 .pointerInput(alphabetMap) {
-                    detectTapGestures(
-                        onPress = { offset ->
-                            isDragging = true
-                            handleSelection(offset.y)
-                            tryAwaitRelease()
-                            isDragging = false
-                            activeLetter = null
-                        }
-                    )
-                }
-                .pointerInput(alphabetMap) {
-                    detectVerticalDragGestures(
-                        onDragStart = { offset ->
-                            isDragging = true
-                            handleSelection(offset.y)
-                        },
-                        onDragEnd = {
-                            isDragging = false
-                            activeLetter = null
-                        },
-                        onDragCancel = {
-                            isDragging = false
-                            activeLetter = null
-                        },
-                        onVerticalDrag = { change, _ ->
+                    // A single gesture loop handles both taps and drags, so
+                    // the bubble can never be cancelled mid-drag by a
+                    // competing tap detector.
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        isDragging = true
+                        activeLetter = null
+                        handleSelection(down.position.y)
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
                             change.consume()
+                            if (!change.pressed) break
                             handleSelection(change.position.y)
                         }
-                    )
+                        isDragging = false
+                        activeLetter = null
+                    }
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly
@@ -166,7 +163,13 @@ fun AlphabeticalFastScroller(
                 Text(
                     text = char.toString(),
                     fontSize = if (isActive) 11.sp else 9.sp,
-                    fontWeight = if (isActive) FontWeight.ExtraBold else if (hasItems) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (isActive) {
+                        FontWeight.ExtraBold
+                    } else if (hasItems) {
+                        FontWeight.SemiBold
+                    } else {
+                        FontWeight.Normal
+                    },
                     color = if (isActive) {
                         MaterialTheme.colorScheme.primary
                     } else if (hasItems) {

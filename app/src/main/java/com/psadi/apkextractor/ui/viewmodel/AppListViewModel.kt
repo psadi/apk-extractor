@@ -14,6 +14,7 @@ import com.psadi.apkextractor.data.preferences.PreferencesManager
 import com.psadi.apkextractor.data.storage.StorageRepository
 import com.psadi.apkextractor.util.IntentUtil
 import com.psadi.apkextractor.util.SearchUtil
+import com.psadi.apkextractor.util.computeAlphabetIndexMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -339,15 +340,4 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.appName })
     }
 
-    private fun computeAlphabetIndexMap(apps: List<AppInfo>): Map<Char, Int> {
-        val map = LinkedHashMap<Char, Int>()
-        apps.forEachIndexed { index, app ->
-            val firstChar = app.appName.firstOrNull()?.uppercaseChar() ?: '#'
-            val key = if (firstChar in 'A'..'Z') firstChar else '#'
-            if (!map.containsKey(key)) {
-                map[key] = index
-            }
-        }
-        return map
-    }
 }
