@@ -65,8 +65,10 @@ fun AlphabeticalFastScroller(
     var activeLetter by remember { mutableStateOf<Char?>(null) }
     var thumbOffsetY by remember { mutableStateOf(0f) }
     var trackTop by remember { mutableStateOf(0f) }
+    var trackLeft by remember { mutableStateOf(0f) }
     var trackHeight by remember { mutableStateOf(1f) }
     var containerHeight by remember { mutableStateOf(1f) }
+    var containerWidth by remember { mutableStateOf(0f) }
 
     fun handleSelection(y: Float) {
         val clampedY = y.coerceIn(0f, trackHeight)
@@ -84,7 +86,10 @@ fun AlphabeticalFastScroller(
         modifier = modifier
             .fillMaxHeight()
             .width(48.dp)
-            .onGloballyPositioned { containerHeight = it.size.height.toFloat() },
+            .onGloballyPositioned {
+                containerHeight = it.size.height.toFloat()
+                containerWidth = it.size.width.toFloat()
+            },
         contentAlignment = Alignment.CenterEnd
     ) {
         // Floating, zoomed-in letter preview bubble.
@@ -97,10 +102,12 @@ fun AlphabeticalFastScroller(
                 .offset {
                     // thumbOffsetY is relative to the track; translate it into
                     // the parent's coordinate space and centre the bubble on it.
+                    // Horizontally, keep the bubble hugging the track's left
+                    // edge (2dp gap) so it reads as attached to the sidebar.
                     val rawY = trackTop + thumbOffsetY - bubbleSize.toPx() / 2f
                     val maxY = (containerHeight - bubbleSize.toPx()).coerceAtLeast(0f)
                     IntOffset(
-                        x = -(bubbleSize.toPx() + 8.dp.toPx()).roundToInt(),
+                        x = (trackLeft - 2.dp.toPx() - containerWidth).roundToInt(),
                         y = rawY.coerceIn(0f, maxY).roundToInt()
                     )
                 }
@@ -132,6 +139,7 @@ fun AlphabeticalFastScroller(
                 .padding(vertical = 4.dp, horizontal = 2.dp)
                 .onGloballyPositioned { coordinates ->
                     trackTop = coordinates.positionInParent().y
+                    trackLeft = coordinates.positionInParent().x
                     trackHeight = coordinates.size.height.toFloat()
                 }
                 .pointerInput(alphabetMap) {
