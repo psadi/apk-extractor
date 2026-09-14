@@ -1,3 +1,11 @@
 [tools]
 java = "openjdk-17"
 gradle = "8.7"
+android-sdk = "23.0"
+
+[tasks."android:sdk"]
+description = "Accept Android SDK licenses and install the platform/build-tools required to build the app"
+run = """
+yes | sdkmanager --licenses >/dev/null
+sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "build-tools;34.0.0"
+"""
